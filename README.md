@@ -29,7 +29,7 @@ Coming soon! Once I smooth out some rough edges and complete sufficient testing,
 
 ## Manual Installation
 
-Download the latest release [Todo: need link] into your Android device. When the download is finished, the device should offer to automatically install the app for you.
+Download the latest [release](https://github.com/njhuffman/picogo/releases) into your Android device. When the download is finished, the device should offer to automatically install the app for you.
 
 You may receive a warning message with wording like `Unsafe app blocked. This app was built for an older version of Android and doesn't include the latest privacy protections.` This warning happens because I build the app with Fyne who maintains backwards compatibility with older devices. Tap on `More details` and `Install anyway`.
 
