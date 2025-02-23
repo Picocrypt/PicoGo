@@ -37,10 +37,8 @@ jobs:
     - name: Build
       run: |
         fyne-cross windows -arch=amd64
-        fyne-cross darwin -arch=arm64
         fyne-cross linux -arch=amd64,arm64
         fyne-cross android -arch=arm64
-        fyne-cross ios -arch=arm64
       env:
         CGO_ENABLED: 1
 
