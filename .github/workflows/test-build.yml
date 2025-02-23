@@ -30,23 +30,36 @@ jobs:
       run: |
         go mod download
         go get -u -v all
-        # go get -u -v fyne.io/fyne/v2@latest
-        # go get -u -v fyne.io/fyne/v2/internal/metadata@latest
-        # go install -v fyne.io/fyne/v2/cmd/fyne@latest
         go install -v github.com/fyne-io/fyne-cross@latest
 
-    - name: Build
+    - name: Build Windows
       run: |
         fyne-cross windows -arch=amd64
         unzip fyne-cross/dist/windows-amd64/*.zip
       env:
         CGO_ENABLED: 1
 
-    - name: Upload artifacts
+    - name: Build Android
+      run: |
+        fyne-cross android -arch=arm64
+        unzip fyne-cross/dist/android-arm64/*.zip
+      env:
+        CGO_ENABLED: 1
+
+    - name: Upload Windows artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: test-build
+        name: test-build-windows
         path: |
-          fyne-cross/dist/windows-amd64/*.exe
+          fyne-cross/dist/windows-amd64/**/*.exe
+        if-no-files-found: error
+        compression-level: 9
+
+    - name: Upload Android artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-build-android
+        path: |
+          fyne-cross/dist/android-arm64/**/*.apk
         if-no-files-found: error
         compression-level: 9
