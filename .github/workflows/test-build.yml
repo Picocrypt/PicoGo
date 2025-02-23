@@ -42,7 +42,6 @@ jobs:
     - name: Build Android
       run: |
         fyne-cross android -arch=arm64
-        unzip fyne-cross/dist/android-arm64/*.zip
       env:
         CGO_ENABLED: 1
 
