@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  test-build:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
@@ -28,11 +28,12 @@ jobs:
 
     - name: Install dependencies
       run: |
+        go mod download
+        go get -u -v all
         go get -u -v fyne.io/fyne/v2@latest
         go get -u -v fyne.io/fyne/v2/internal/metadata@latest
-        go install fyne.io/fyne/v2/cmd/fyne@latest
-        go install github.com/fyne-io/fyne-cross@latest
-        go mod download
+        go install -u -v fyne.io/fyne/v2/cmd/fyne@latest
+        go install -u -v github.com/fyne-io/fyne-cross@latest
 
     - name: Build
       run: |
@@ -45,8 +46,11 @@ jobs:
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: build-linux
+        name: test-build
         path: |
-          *.apk
+          fyne-cross/dist/windows-amd64/*
+          fyne-cross/dist/linux-amd64/*
+          fyne-cross/dist/linux-arm64/*
+          fyne-cross/dist/android-arm64/*
         if-no-files-found: error
         compression-level: 9
