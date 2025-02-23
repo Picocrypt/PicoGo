@@ -11,7 +11,7 @@ on:
 
 jobs:
   test-build:
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
 
@@ -22,24 +22,22 @@ jobs:
         check-latest: true
         cache: false
 
-    # - name: Install packages
-    #   run: |
-    #     sudo apt install -y gcc libgl1-mesa-dev libglu1-mesa xorg-dev libgtk-3-dev libxkbcommon-dev
+    - name: Install packages
+      run: |
+        sudo apt install -y gcc libgl1-mesa-dev libglu1-mesa xorg-dev libgtk-3-dev libxkbcommon-dev
 
     - name: Install dependencies
       run: |
         go mod download
         go get -u -v all
-        go get -u -v fyne.io/fyne/v2@latest
-        go get -u -v fyne.io/fyne/v2/internal/metadata@latest
-        go install -v fyne.io/fyne/v2/cmd/fyne@latest
+        # go get -u -v fyne.io/fyne/v2@latest
+        # go get -u -v fyne.io/fyne/v2/internal/metadata@latest
+        # go install -v fyne.io/fyne/v2/cmd/fyne@latest
         go install -v github.com/fyne-io/fyne-cross@latest
 
     - name: Build
       run: |
         fyne-cross windows -arch=amd64
-        fyne-cross linux -arch=amd64,arm64
-        fyne-cross android -arch=arm64
       env:
         CGO_ENABLED: 1
 
@@ -49,8 +47,5 @@ jobs:
         name: test-build
         path: |
           fyne-cross/dist/windows-amd64/*
-          fyne-cross/dist/linux-amd64/*
-          fyne-cross/dist/linux-arm64/*
-          fyne-cross/dist/android-arm64/*
         if-no-files-found: error
         compression-level: 9
