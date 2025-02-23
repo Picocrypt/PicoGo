@@ -239,8 +239,8 @@ github.com/nicksnyder/go-i18n/v2 v2.4.0 h1:3IcvPOAvnCKwNm0TB0dLDTuawWEj+ax/RERNC
 github.com/nicksnyder/go-i18n/v2 v2.4.0/go.mod h1:nxYSZE9M0bf3Y70gPQjN9ha7XNHX7gMc814+6wVyEI4=
 github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e h1:fD57ERR4JtEqsWbfPhv4DMiApHyliiK5xCTNVSPiaAs=
 github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e/go.mod h1:zD1mROLANZcx1PVRCS0qkT7pwLkGfwJo4zjcN/Tysno=
-github.com/njhuffman/picocryption v0.1.0 h1:uChNnKOnEfOttbj6aRgjZNIeHBLNcztplsYWghiAlO0=
-github.com/njhuffman/picocryption v0.1.0/go.mod h1:oHR0K/fBsgQRinHl65e0nBdb3kUQ7dE/S0oKUXWMtBE=
+github.com/njhuffman/picocryption v0.1.1 h1:JRTQ3oM/RdLpHaE7C8qxSOBS0zvwRMfuwmC5pEH5QzI=
+github.com/njhuffman/picocryption v0.1.1/go.mod h1:oHR0K/fBsgQRinHl65e0nBdb3kUQ7dE/S0oKUXWMtBE=
 github.com/pascaldekloe/goe v0.0.0-20180627143212-57f6aae5913c/go.mod h1:lzWF7FIEvWOWxwDKqyGYQf6ZUaNfKdP144TG7ZOy1lc=
 github.com/pelletier/go-toml v1.9.3/go.mod h1:u1nR/EPcESfeI/szUZKdtJ0xRNbUoANCkoOuaOx1Y+c=
 github.com/pkg/errors v0.8.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
