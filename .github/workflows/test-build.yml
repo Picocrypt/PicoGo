@@ -24,7 +24,7 @@ jobs:
 
     - name: Install packages
       run: |
-        sudo apt install -y gcc libgl1-mesa-dev libglu1-mesa xorg-dev libgtk-3-dev libxkbcommon-dev
+        sudo apt install -y gcc libgl1-mesa-dev libglu1-mesa xorg-dev libgtk-3-dev libxkbcommon-dev unzip
 
     - name: Install dependencies
       run: |
@@ -38,6 +38,7 @@ jobs:
     - name: Build
       run: |
         fyne-cross windows -arch=amd64
+        unzip fyne-cross/dist/windows-amd64/*.zip
       env:
         CGO_ENABLED: 1
 
@@ -46,6 +47,6 @@ jobs:
       with:
         name: test-build
         path: |
-          fyne-cross/dist/windows-amd64/*
+          fyne-cross/dist/windows-amd64/*.exe
         if-no-files-found: error
         compression-level: 9
