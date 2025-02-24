@@ -52,3 +52,9 @@ Similar problem as file chunks. Fyne exposes files as content URIs, so there is 
 ## What about iOS devices?
 
 In theory, the app is fully ready to be built for iOS. Unfortunately I do not have easy access to an apple silicon device (required to run the build process) or any iOS devices to test with. Even if both of those are solved, distributing apps for iOS devices costs about $100 per year for a developer license, which is higher than I'm willing to commit right now.
+
+# Credits
+<ul>
+  <li><strong><a href="https://github.com/njhuffman">@njhuffman</a></strong>: initial and primary developer of PicoGo</li>
+  <li><strong><a href="https://github.com/HACKERALERT">@HACKERALERT</a></strong>: original Picocrypt developer, PicoGo CI/CD maintainer</li>
+</ul>
