@@ -25,11 +25,11 @@ jobs:
     - name: Install dependencies
       run: |
         go mod download
-        go install -v github.com/fyne-io/fyne-cross@latest
+        go install -v fyne.io/fyne/v2/cmd/fyne@latest
 
     - name: Build iOS
       run: |
-        fyne-cross ios
+        fyne package -os ios -appId io.github.picocrypt.Picocrypt
       env:
         CGO_ENABLED: 1
 
