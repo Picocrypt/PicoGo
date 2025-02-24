@@ -1,17 +1,14 @@
-name: test-build
+name: test-build-on-pr-android
 
 permissions:
   contents: write
 
 on:
-  push:
-    branches:
-      - main
-  schedule:
-    - cron: "0 0 * * *"
+  pull_request:
+    branches: [ main ]
 
 jobs:
-  test-build:
+  test-build-on-pr-android:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
@@ -25,7 +22,7 @@ jobs:
 
     - name: Install packages
       run: |
-        sudo apt install -y gcc libgl1-mesa-dev libglu1-mesa xorg-dev libgtk-3-dev libxkbcommon-dev unzip
+        sudo apt install -y gcc libgl1-mesa-dev libglu1-mesa xorg-dev libgtk-3-dev libxkbcommon-dev
 
     - name: Install dependencies
       run: |
@@ -33,31 +30,16 @@ jobs:
         go get -u -v all
         go install -v github.com/fyne-io/fyne-cross@latest
 
-    - name: Build Windows
-      run: |
-        fyne-cross windows -arch=amd64
-      env:
-        CGO_ENABLED: 1
-
     - name: Build Android
       run: |
         fyne-cross android -arch=arm64
       env:
         CGO_ENABLED: 1
 
-    - name: Upload Windows artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: test-build-windows
-        path: |
-          fyne-cross/dist/windows-amd64/*
-        if-no-files-found: error
-        compression-level: 9
-
     - name: Upload Android artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: test-build-android
+        name: TEST-BUILD-DO-NOT-USE
         path: |
           fyne-cross/dist/android-arm64/*
         if-no-files-found: error
