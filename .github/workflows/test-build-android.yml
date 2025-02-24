@@ -1,5 +1,8 @@
 name: test-build-android
 
+permissions:
+  contents: write
+
 on:
   push:
     branches: [ main ]
