@@ -1,14 +1,13 @@
-name: test-build-on-pr-android
-
-permissions:
-  contents: write
+name: test-build-android
 
 on:
+  push:
+    branches: [ main ]
   pull_request:
     branches: [ main ]
 
 jobs:
-  test-build-on-pr-android:
+  test-build-android:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
@@ -27,7 +26,6 @@ jobs:
     - name: Install dependencies
       run: |
         go mod download
-        go get -u -v all
         go install -v github.com/fyne-io/fyne-cross@latest
 
     - name: Build Android
@@ -36,10 +34,10 @@ jobs:
       env:
         CGO_ENABLED: 1
 
-    - name: Upload Android artifacts
+    - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: TEST-BUILD-DO-NOT-USE
+        name: TEST-BUILD-DO-NOT-USE-THIS
         path: |
           fyne-cross/dist/android-arm64/*
         if-no-files-found: error
