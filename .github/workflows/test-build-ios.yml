@@ -1,5 +1,8 @@
 name: test-build-ios
 
+permissions:
+  contents: write
+
 on:
   push:
     branches: [ main ]
