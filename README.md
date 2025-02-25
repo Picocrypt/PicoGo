@@ -43,7 +43,7 @@ Unsupported features are listed below. If you would like to see any of them impl
 
 ## What about file chunks?
 
-There are no plans to support file chunking. PicoGo is built using [Fyne.io](https://www.fyne.io) which does not offer an easy way to look up files on Android by name. This would require the user to manually select each of the chunked files, which seems clumsy and unnecessarily complex.
+There are no plans to support file chunking. PicoGo is built using [Fyne.io](https://fyne.io/) which does not offer an easy way to look up files on Android by name. This would require the user to manually select each of the chunked files, which seems clumsy and unnecessarily complex.
 
 ## What about multiple files / zip / compression?
 
