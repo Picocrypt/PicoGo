@@ -1,11 +1,11 @@
 # PicoGo
 
-A mobile app for file encryption compatible with [Picocrypt](https://www.github.com/Picocrypt/Picocrypt).
+A experimental mobile app (Android only for now) for file encryption compatible with [Picocrypt](https://www.github.com/Picocrypt/Picocrypt).
 
-This app is based on Picocrypt's encryption scheme but is not developed or endorsed by Picocrypt's author/maintainer. It is a standalone work intended to make Picocrypt files easier to access on Android devices. All credit for the original encryption scheme and corresponding code belongs to [Picocrypt](https://www.github.com/Picocrypt/Picocrypt) and it's author [HACKERALERT](https://github.com/HACKERALERT).
+This app is based on Picocrypt's encryption scheme but is not developed or endorsed by Picocrypt's author/maintainer. It is a standalone work intended to make Picocrypt files easier to access on Android devices. All credit for the original encryption scheme and corresponding code belongs to [Picocrypt](https://www.github.com/Picocrypt/Picocrypt) and its author [HACKERALERT](https://github.com/HACKERALERT).
 
 > [!CAUTION]
-> PicoGo is still in an experimental phase. It has not been extensively tested yet and so is not recommended for securing important files. If you do so, test the result compared to Picocrypt to be sure. If you run into any errors, please open an issue.
+> PicoGo is still in an experimental phase. It has not been extensively tested yet and so is not recommended for securing important files. If you do so, test the result compared to official desktop Picocrypt to be sure. If you run into any errors, please open an issue.
 
 > [!IMPORTANT]
 > Feedback needed! If you are willing, I am looking for early testers for the UI and starting feature set. If you could take a few minutes to try the app out and leave any comments or suggestions it would go a long way in helping PicoGo a usable app for everyone.
@@ -29,9 +29,9 @@ Coming soon! Once I smooth out some rough edges and complete sufficient testing,
 
 ## Manual Installation
 
-Download the latest [release](https://github.com/njhuffman/picogo/releases) into your Android device. When the download is finished, the device should offer to automatically install the app for you.
+Download the latest [release](https://github.com/Picocrypt/PicoGo/releases) into your Android device. When the download is finished, the device should offer to automatically install the app for you.
 
-You may receive a warning message with wording like `Unsafe app blocked. This app was built for an older version of Android and doesn't include the latest privacy protections.` This warning happens because I build the app with Fyne who maintains backwards compatibility with older devices. Tap on `More details` and `Install anyway`.
+You may receive a warning message with wording like `Unsafe app blocked. This app was built for an older version of Android and doesn't include the latest privacy protections.` This warning happens because I build the app with Fyne which maintains backwards compatibility with older devices. Tap on `More details` and `Install anyway`.
 
 ## Build from source
 
