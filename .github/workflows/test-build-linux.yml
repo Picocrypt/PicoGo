@@ -24,6 +24,9 @@ jobs:
 
     - name: Install packages
       run: |
+        sudo apt update
+        sudo apt upgrade -y
+        sudo apt autoremove -y
         sudo apt install -y gcc libgl1-mesa-dev libglu1-mesa xorg-dev libgtk-3-dev libxkbcommon-dev
 
     - name: Install dependencies
