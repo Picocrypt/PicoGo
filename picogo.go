@@ -20,7 +20,7 @@ import (
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 
-	"github.com/njhuffman/picocryption"
+	"github.com/picocrypt/picogo/internal/encryption"
 )
 
 var version = "0.1.1"
@@ -95,7 +95,7 @@ func (s *State) SetInputURI(input fyne.URI) error {
 		if err != nil {
 			return err
 		}
-		settings, err := picocryption.GetEncryptionSettings(reader)
+		settings, err := encryption.GetEncryptionSettings(reader)
 		if err != nil {
 			return err
 		}
@@ -262,7 +262,7 @@ func saveOutput(state *State, window fyne.Window, app fyne.App) {
 }
 
 func encrypt(state *State, win fyne.Window, app fyne.App) {
-	updateCh := make(chan picocryption.Update)
+	updateCh := make(chan encryption.Update)
 	errCh := make(chan error)
 
 	go func() {
@@ -302,14 +302,14 @@ func encrypt(state *State, win fyne.Window, app fyne.App) {
 			}
 			keyfiles = append(keyfiles, r)
 		}
-		settings := picocryption.Settings{
+		settings := encryption.Settings{
 			Comments:    state.Comments,
 			ReedSolomon: state.ReedSolomon,
 			Paranoid:    state.Paranoid,
 			OrderedKf:   state.OrderedKeyfiles,
 			Deniability: state.Deniability,
 		}
-		header, err := picocryption.EncryptHeadless(
+		header, err := encryption.EncryptHeadless(
 			input, state.Password, keyfiles, settings, headlessWriter, updateCh,
 		)
 		if err != nil {
@@ -340,7 +340,7 @@ func encrypt(state *State, win fyne.Window, app fyne.App) {
 			return
 		}
 
-		err = picocryption.PrependHeader(headlessReader, output, header)
+		err = encryption.PrependHeader(headlessReader, output, header)
 		errCh <- err
 	}()
 
@@ -421,13 +421,13 @@ func tryDecrypt(
 	}
 	defer output.Close()
 
-	updateCh := make(chan picocryption.Update)
+	updateCh := make(chan encryption.Update)
 	errCh := make(chan struct {
 		bool
 		error
 	})
 	go func() {
-		damaged, err := picocryption.Decrypt(state.Password, keyfiles, input, output, recoveryMode, recoveryMode, updateCh)
+		damaged, err := encryption.Decrypt(state.Password, keyfiles, input, output, recoveryMode, recoveryMode, updateCh)
 		errCh <- struct {
 			bool
 			error
@@ -459,7 +459,7 @@ func decrypt(state *State, win fyne.Window, app fyne.App) {
 	damaged, err := tryDecrypt(state, false, win, app)
 	recoveryMode := false
 	recoveryCanceled := false
-	if errors.Is(err, picocryption.ErrCorrupted) {
+	if errors.Is(err, encryption.ErrBodyCorrupted) {
 		// Offer to try again in recovery mode
 		text := widget.NewLabel("The file is damaged. Would you like to try again in recovery mode?")
 		text.Wrapping = fyne.TextWrapWord
@@ -496,7 +496,7 @@ func decrypt(state *State, win fyne.Window, app fyne.App) {
 		save = true
 	} else {
 		switch {
-		case errors.Is(err, picocryption.ErrCorrupted):
+		case errors.Is(err, encryption.ErrBodyCorrupted):
 			if recoveryMode {
 				msg = "The file is too damaged to recover. Would you like to save the partially recovered file?"
 				save = true
@@ -504,16 +504,16 @@ func decrypt(state *State, win fyne.Window, app fyne.App) {
 				msg = "The file is too damaged to recover."
 				save = false
 			}
-		case errors.Is(err, picocryption.ErrIncorrectKeyfiles):
+		case errors.Is(err, encryption.ErrIncorrectKeyfiles):
 			msg = "One or more keyfiles are incorrect."
 			save = false
-		case errors.Is(err, picocryption.ErrIncorrectPassword):
+		case errors.Is(err, encryption.ErrIncorrectPassword):
 			msg = "The password is incorrect."
 			save = false
-		case errors.Is(err, picocryption.ErrKeyfilesNotRequired):
+		case errors.Is(err, encryption.ErrKeyfilesNotRequired):
 			msg = "Keyfiles are not required to decrypt this file. Please remove them and try again."
 			save = false
-		case errors.Is(err, picocryption.ErrKeyfilesRequired):
+		case errors.Is(err, encryption.ErrKeyfilesRequired):
 			msg = "Keyfiles are required to decrypt this file. Please add them and try again."
 			save = false
 		default:

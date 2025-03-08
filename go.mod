@@ -1,4 +1,4 @@
-module PicoGo
+module github.com/picocrypt/picogo
 
 go 1.23.0
 
@@ -8,7 +8,6 @@ require (
 	fyne.io/fyne/v2 v2.5.4
 	github.com/Picocrypt/infectious v0.0.0-20240830233326-3a050f65f9ec
 	github.com/Picocrypt/serpent v0.0.0-20240830233833-9ad6ab254fd7
-	github.com/njhuffman/picocryption v0.1.1
 	golang.org/x/crypto v0.35.0
 )
 
