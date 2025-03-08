@@ -23,7 +23,7 @@ import (
 	"github.com/njhuffman/picocryption"
 )
 
-var version = "0.1.0"
+var version = "0.1.1"
 
 type myTheme struct{}
 
