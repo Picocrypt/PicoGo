@@ -1,4 +1,4 @@
-module PicoGo
+module github.com/picocrypt/picogo
 
 go 1.23.0
 
@@ -6,14 +6,14 @@ toolchain go1.24.0
 
 require (
 	fyne.io/fyne/v2 v2.5.4
-	github.com/njhuffman/picocryption v0.1.1
+	github.com/Picocrypt/infectious v0.0.0-20240830233326-3a050f65f9ec
+	github.com/Picocrypt/serpent v0.0.0-20240830233833-9ad6ab254fd7
+	golang.org/x/crypto v0.35.0
 )
 
 require (
 	fyne.io/systray v1.11.0 // indirect
 	github.com/BurntSushi/toml v1.4.0 // indirect
-	github.com/Picocrypt/infectious v0.0.0-20240830233326-3a050f65f9ec // indirect
-	github.com/Picocrypt/serpent v0.0.0-20240830233833-9ad6ab254fd7 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/fredbi/uri v1.1.0 // indirect
 	github.com/fsnotify/fsnotify v1.8.0 // indirect
@@ -36,7 +36,6 @@ require (
 	github.com/srwiley/rasterx v0.0.0-20220730225603-2ab79fcdd4ef // indirect
 	github.com/stretchr/testify v1.10.0 // indirect
 	github.com/yuin/goldmark v1.7.8 // indirect
-	golang.org/x/crypto v0.35.0 // indirect
 	golang.org/x/image v0.24.0 // indirect
 	golang.org/x/mobile v0.0.0-20250218173827-cd096645fcd3 // indirect
 	golang.org/x/net v0.35.0 // indirect
