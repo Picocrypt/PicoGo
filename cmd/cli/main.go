@@ -24,18 +24,27 @@ type args struct {
 	password    string
 	comments    string
 	overwrite   bool
+	encryptOnly bool
+	decryptOnly bool
 }
 
 func parseArgs() (args, error) {
-	reedSolomon := flag.Bool("r", false, "(encryption) encode with Reed-Solomon bytes")
-	paranoid := flag.Bool("p", false, "(encryption) use paranoid mode")
-	deniability := flag.Bool("d", false, "(encryption) use deniability mode")
-	keyfilesStr := flag.String("kf", "", "list of keyfiles to use. Separate list with commas (ex: keyfile1,keyfile2,keyfile3)")
-	keep := flag.Bool("k", false, "(decryption) keep output even if corrupted")
+	flag.Usage = func() {
+		fmt.Fprintf(flag.CommandLine.Output(), "Usage: %s [options] file1 [file2 ...]\n", os.Args[0])
+		fmt.Fprintf(flag.CommandLine.Output(), "\nOptions:\n")
+		flag.PrintDefaults()
+	}
+	reedSolomon := flag.Bool("rs", false, "(encryption) encode with Reed-Solomon bytes")
+	paranoid := flag.Bool("paranoid", false, "(encryption) use paranoid mode")
+	deniability := flag.Bool("deniability", false, "(encryption) use deniability mode")
+	keyfilesStr := flag.String("keyfiles", "", "list of keyfiles to use. Separate list with commas (ex: keyfile1,keyfile2,keyfile3)")
+	keep := flag.Bool("keep", false, "(decryption) keep output even if corrupted. If not set, the output file will be deleted.")
 	ordered := flag.Bool("ordered", false, "(encryption) require keyfiles in given order")
-	passfrom := flag.String("passfrom", "tty", "password source")
-	comments := flag.String("comments", "", "(encryption) comments to save with the file. THESE ARE NOT ENCRYPTED.")
+	passfrom := flag.String("passfrom", "tty", "password source. Options can be found in getpass documentation (github.com/jschauma/getpass)")
+	comments := flag.String("comments", "", "(encryption) comments to save with the file. THESE ARE NOT ENCRYPTED. Wrap in quotes.")
 	overwrite := flag.Bool("overwrite", false, "overwrite existing files")
+	encryptOnly := flag.Bool("encrypt-only", false, "only handle files that require encryption (only processes non-.pcv files)")
+	decryptOnly := flag.Bool("decrypt-only", false, "only handle files that require decryption (only processes .pcv files)")
 
 	flag.Parse()
 	if flag.NArg() == 0 {
@@ -62,6 +71,8 @@ func parseArgs() (args, error) {
 		password:    password,
 		comments:    *comments,
 		overwrite:   *overwrite,
+		encryptOnly: *encryptOnly,
+		decryptOnly: *decryptOnly,
 	}, nil
 }
 
@@ -203,12 +214,20 @@ func main() {
 
 	for i, inFile := range a.inFiles {
 		if strings.HasSuffix(inFile, ".pcv") {
+			if a.encryptOnly {
+				fmt.Printf("[%d/%d] Skipping %s (encrypt-only is set)\n", i+1, len(a.inFiles), inFile)
+				continue
+			}
 			err := decrypt(inFile, a.keyfiles, a.password, [2]int{i, len(a.inFiles)}, a.keep, a.overwrite)
 			if err != nil {
 				fmt.Printf("error while decrypting %s: %s\n", inFile, err)
 				os.Exit(1)
 			}
 		} else {
+			if a.decryptOnly {
+				fmt.Printf("[%d/%d] Skipping %s (decrypt-only is set)\n", i+1, len(a.inFiles), inFile)
+				continue
+			}
 			settings := encryption.Settings{
 				Comments:    a.comments,
 				ReedSolomon: a.reedSolomon,
