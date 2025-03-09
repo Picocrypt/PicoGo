@@ -19,7 +19,6 @@ type args struct {
 	deniability bool
 	inFiles []string
 	keyfiles []string
-	fix bool
 	keep bool
 	ordered bool
 	password string
@@ -31,7 +30,6 @@ func parseArgs() (args, error){
 	paranoid := flag.Bool("p", false, "(encryption) use paranoid mode")
 	deniability := flag.Bool("d", false, "(encryption) use deniability mode")
 	keyfilesStr := flag.String("kf", "", "list of keyfiles to use. Separate list with commas (ex: keyfile1,keyfile2,keyfile3)")
-	fix := flag.Bool("f", false, "(decryption) attempt to fix corruption")
 	keep := flag.Bool("k", false, "(decryption) keep output even if corrupted")
 	ordered := flag.Bool("ordered", false, "(encryption) require keyfiles in given order")
 	passfrom := flag.String("passfrom", "tty", "password source")
@@ -57,7 +55,6 @@ func parseArgs() (args, error){
 		deniability: *deniability,
 		inFiles: flag.Args(),
 		keyfiles: keyfiles,
-		fix: *fix,
 		keep: *keep,
 		ordered: *ordered,
 		password: password,
@@ -124,7 +121,6 @@ func decrypt(
 	inFile string,
 	keyfiles []string,
 	password string,
-	fix bool,
 ) (string, error){
 	inReader, err := os.Open(inFile)
 	if err != nil {
@@ -155,7 +151,7 @@ func decrypt(
 		keyfileReaders,
 		inReader,
 		outWriter,
-		!fix,
+		true,
 		true,
 		nil,
 	)
@@ -178,7 +174,7 @@ func main() {
 
 	for _, inFile := range a.inFiles {
 		if strings.HasSuffix(inFile, ".pcv"){
-			outFile, err := decrypt(inFile, a.keyfiles, a.password, a.fix)
+			outFile, err := decrypt(inFile, a.keyfiles, a.password)
 			if err != nil {
 				fmt.Println("error while decrypting "+inFile+": ", err)
 				return
