@@ -112,7 +112,7 @@ func testConsistency(settings Settings, size int, numKeyfiles int, t *testing.T)
 		t.Fatal(err)
 	}
 	decrypted := bytes.NewBuffer([]byte{})
-	Decrypt(password, kf2, buff(encrypted), decrypted, false, false, nil)
+	Decrypt(password, kf2, buff(encrypted), decrypted, false, nil)
 
 	result, err := io.ReadAll(decrypted)
 	if err != nil {

@@ -83,7 +83,7 @@ func Decrypt(
 		total += len(p)
 		if eof {
 			p, err := decryptStream.flush()
-			if (err == nil) | errors.Is(err, Err BodyCorrupted) {
+			if (err == nil) || errors.Is(err, ErrBodyCorrupted) {
 				_, e := w.Write(p)
 				return damageTracker.damage, e
 			}

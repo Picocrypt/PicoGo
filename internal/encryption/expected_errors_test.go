@@ -17,7 +17,7 @@ func TestFileTooShort(t *testing.T) {
 		if err != nil {
 			t.Fatal("creating random data:", err)
 		}
-		_, err = Decrypt("password", []io.Reader{}, bytes.NewBuffer(invalidData), bytes.NewBuffer([]byte{}), false, false, nil)
+		_, err = Decrypt("password", []io.Reader{}, bytes.NewBuffer(invalidData), bytes.NewBuffer([]byte{}), false, nil)
 		if !errors.Is(err, ErrFileTooShort) {
 			t.Fatal("expected ErrFileTooShort, got", err)
 		}
@@ -31,7 +31,7 @@ func TestHeaderCorrupted(t *testing.T) {
 	if err != nil {
 		t.Fatal("creating random data:", err)
 	}
-	_, err = Decrypt("password", []io.Reader{}, bytes.NewBuffer(invalidData), bytes.NewBuffer([]byte{}), false, false, nil)
+	_, err = Decrypt("password", []io.Reader{}, bytes.NewBuffer(invalidData), bytes.NewBuffer([]byte{}), false, nil)
 	if !errors.Is(err, ErrHeaderCorrupted) {
 		t.Fatal("expected ErrHeaderCorrupted, got", err)
 	}
@@ -44,7 +44,7 @@ func TestIncorrectPassword(t *testing.T) {
 		t.Fatal("opening file:", err)
 	}
 	defer reader.Close()
-	_, err = Decrypt("wrong-password", []io.Reader{}, reader, bytes.NewBuffer([]byte{}), false, false, nil)
+	_, err = Decrypt("wrong-password", []io.Reader{}, reader, bytes.NewBuffer([]byte{}), false, nil)
 	if !errors.Is(err, ErrIncorrectPassword) {
 		t.Fatal("expected wrong password, got", err)
 	}
@@ -59,7 +59,7 @@ func TestIncorrectKeyfiles(t *testing.T) {
 	wrongKeyfileData := make([]byte, 100)
 	rand.Read(wrongKeyfileData)
 	defer reader.Close()
-	_, err = Decrypt(",./<>?", []io.Reader{bytes.NewBuffer(wrongKeyfileData)}, reader, bytes.NewBuffer([]byte{}), false, false, nil)
+	_, err = Decrypt(",./<>?", []io.Reader{bytes.NewBuffer(wrongKeyfileData)}, reader, bytes.NewBuffer([]byte{}), false, nil)
 	if !errors.Is(err, ErrIncorrectOrMisorderedKeyfiles) {
 		t.Fatal("expected wrong password, got", err)
 	}
@@ -72,7 +72,7 @@ func TestKeyfilesRequired(t *testing.T) {
 		t.Fatal("opening file:", err)
 	}
 	defer reader.Close()
-	_, err = Decrypt(",./<>?", []io.Reader{}, reader, bytes.NewBuffer([]byte{}), false, false, nil)
+	_, err = Decrypt(",./<>?", []io.Reader{}, reader, bytes.NewBuffer([]byte{}), false, nil)
 	if !errors.Is(err, ErrKeyfilesRequired) {
 		t.Fatal("expected wrong password, got", err)
 	}
@@ -108,7 +108,7 @@ func TestKeyfilesNotRequired(t *testing.T) {
 		t.Fatal("opening file:", err)
 	}
 	defer reader.Close()
-	_, err = Decrypt("qwerty", []io.Reader{bytes.NewBuffer([]byte{})}, reader, bytes.NewBuffer([]byte{}), false, false, nil)
+	_, err = Decrypt("qwerty", []io.Reader{bytes.NewBuffer([]byte{})}, reader, bytes.NewBuffer([]byte{}), false, nil)
 	if !errors.Is(err, ErrKeyfilesNotRequired) {
 		t.Fatal("expected ErrKeyfilesNotRequired, got", err)
 	}
@@ -121,7 +121,7 @@ func TestCorrupted(t *testing.T) {
 		t.Fatal("opening file:", err)
 	}
 	defer reader.Close()
-	_, err = Decrypt("qwerty", []io.Reader{}, reader, bytes.NewBuffer([]byte{}), false, false, nil)
+	_, err = Decrypt("qwerty", []io.Reader{}, reader, bytes.NewBuffer([]byte{}), false, nil)
 	if !errors.Is(err, ErrHeaderCorrupted) {
 		t.Fatal("expected ErrHeaderCorrupted, got", err)
 	}
@@ -142,7 +142,7 @@ func TestDamagedButRecoverable(t *testing.T) {
 
 	encryptedData[1000] = byte(int(encryptedData[1000]) + 1)
 
-	damaged, err := Decrypt("\\][|}{", []io.Reader{}, bytes.NewBuffer(encryptedData), bytes.NewBuffer([]byte{}), false, false, nil)
+	damaged, err := Decrypt("\\][|}{", []io.Reader{}, bytes.NewBuffer(encryptedData), bytes.NewBuffer([]byte{}), false, nil)
 	if err != nil {
 		t.Fatal("expected no error, got", err)
 	}

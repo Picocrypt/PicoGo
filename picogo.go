@@ -427,7 +427,7 @@ func tryDecrypt(
 		error
 	})
 	go func() {
-		damaged, err := encryption.Decrypt(state.Password, keyfiles, input, output, recoveryMode, recoveryMode, updateCh)
+		damaged, err := encryption.Decrypt(state.Password, keyfiles, input, output, recoveryMode, updateCh)
 		errCh <- struct {
 			bool
 			error
