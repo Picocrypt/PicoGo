@@ -23,6 +23,7 @@ type args struct {
 	ordered     bool
 	password    string
 	comments    string
+	overwrite   bool
 }
 
 func parseArgs() (args, error) {
@@ -34,6 +35,7 @@ func parseArgs() (args, error) {
 	ordered := flag.Bool("ordered", false, "(encryption) require keyfiles in given order")
 	passfrom := flag.String("passfrom", "tty", "password source")
 	comments := flag.String("comments", "", "(encryption) comments to save with the file. THESE ARE NOT ENCRYPTED.")
+	overwrite := flag.Bool("overwrite", false, "overwrite existing files")
 
 	flag.Parse()
 	if flag.NArg() == 0 {
@@ -59,6 +61,7 @@ func parseArgs() (args, error) {
 		ordered:     *ordered,
 		password:    password,
 		comments:    *comments,
+		overwrite:   *overwrite,
 	}, nil
 }
 
@@ -68,6 +71,7 @@ func encrypt(
 	settings encryption.Settings,
 	password string,
 	outOf [2]int,
+	overwrite bool,
 ) error {
 	inReader, err := os.Open(inFile)
 	if err != nil {
@@ -85,7 +89,7 @@ func encrypt(
 	}
 	outFile := inFile + ".pcv"
 	_, err = os.Stat(outFile)
-	if err == nil {
+	if err == nil && !overwrite {
 		return fmt.Errorf("%s already exists", outFile)
 	}
 	outWriter, err := os.Create(outFile)
@@ -131,6 +135,7 @@ func decrypt(
 	password string,
 	outOf [2]int,
 	keep bool,
+	overwrite bool,
 ) error {
 	inReader, err := os.Open(inFile)
 	if err != nil {
@@ -148,7 +153,7 @@ func decrypt(
 	}
 	outFile := inFile[:len(inFile)-4]
 	_, err = os.Stat(outFile)
-	if err == nil {
+	if err == nil && !overwrite {
 		return fmt.Errorf("%s already exists", outFile)
 	}
 	outWriter, err := os.Create(outFile)
@@ -198,7 +203,7 @@ func main() {
 
 	for i, inFile := range a.inFiles {
 		if strings.HasSuffix(inFile, ".pcv") {
-			err := decrypt(inFile, a.keyfiles, a.password, [2]int{i, len(a.inFiles)}, a.keep)
+			err := decrypt(inFile, a.keyfiles, a.password, [2]int{i, len(a.inFiles)}, a.keep, a.overwrite)
 			if err != nil {
 				fmt.Printf("error while decrypting %s: %s\n", inFile, err)
 				os.Exit(1)
@@ -210,7 +215,7 @@ func main() {
 				Paranoid:    a.paranoid,
 				Deniability: a.deniability,
 			}
-			err := encrypt(inFile, a.keyfiles, settings, a.password, [2]int{i, len(a.inFiles)})
+			err := encrypt(inFile, a.keyfiles, settings, a.password, [2]int{i, len(a.inFiles)}, a.overwrite)
 			if err != nil {
 				fmt.Printf("error while encrypting %s: %s\n", inFile, err)
 				os.Exit(1)
