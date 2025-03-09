@@ -53,7 +53,7 @@ func parseArgs() (args, error) {
 
 	password, err := getpass.Getpass(*passfrom)
 	if err != nil {
-		return args{}, err
+		return args{}, fmt.Errorf("reading password from %s: %w", *passfrom, err)
 	}
 	keyfiles := []string{}
 	if len(*keyfilesStr) > 0 {
@@ -76,6 +76,38 @@ func parseArgs() (args, error) {
 	}, nil
 }
 
+func openFiles(inFile string, keyfiles []string, outFile string, overwrite bool) (*os.File, []*os.File, *os.File, error) {
+	inReader, err := os.Open(inFile)
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("opening %s: %w", inFile, err)
+	}
+	keyfileReaders := []*os.File{}
+	for _, keyfile := range keyfiles {
+		reader, err := os.Open(keyfile)
+		if err != nil {
+			return nil, nil, nil, fmt.Errorf("opening %s: %w", keyfile, err)
+		}
+		keyfileReaders = append(keyfileReaders, reader)
+	}
+	_, err = os.Stat(outFile)
+	if err == nil && !overwrite {
+		return nil, nil, nil, fmt.Errorf("%s already exists", outFile)
+	}
+	outWriter, err := os.Create(outFile)
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("creating %s: %w", outFile, err)
+	}
+	return inReader, keyfileReaders, outWriter, nil
+}
+
+func asReaders(files []*os.File) []io.Reader {
+	readers := make([]io.Reader, len(files))
+	for i, file := range files {
+		readers[i] = file
+	}
+	return readers
+}
+
 func encrypt(
 	inFile string,
 	keyfiles []string,
@@ -84,29 +116,16 @@ func encrypt(
 	outOf [2]int,
 	overwrite bool,
 ) error {
-	inReader, err := os.Open(inFile)
-	if err != nil {
-		return fmt.Errorf("opening %s: %w", inFile, err)
-	}
-	defer inReader.Close()
-	keyfileReaders := []io.Reader{}
-	for _, keyfile := range keyfiles {
-		reader, err := os.Open(keyfile)
-		if err != nil {
-			return fmt.Errorf("opening %s: %w", keyfile, err)
-		}
-		defer reader.Close()
-		keyfileReaders = append(keyfileReaders, reader)
-	}
 	outFile := inFile + ".pcv"
-	_, err = os.Stat(outFile)
-	if err == nil && !overwrite {
-		return fmt.Errorf("%s already exists", outFile)
-	}
-	outWriter, err := os.Create(outFile)
+	inReader, keyfileReaders, outWriter, err := openFiles(inFile, keyfiles, outFile, overwrite)
 	if err != nil {
-		return fmt.Errorf("creating %s: %w", outFile, err)
+		return fmt.Errorf("opening files: %w", err)
 	}
+	defer func() {
+		for _, reader := range append(keyfileReaders, inReader, outWriter) {
+			reader.Close()
+		}
+	}()
 
 	tmp := make([]byte, encryption.HeaderSize(settings))
 	_, err = outWriter.Write(tmp)
@@ -119,10 +138,10 @@ func encrypt(
 		progressbar.OptionClearOnFinish(),
 		progressbar.OptionUseIECUnits(true),
 		progressbar.OptionSetDescription(
-			fmt.Sprintf("[%d/%d] Ecrypting: %s", outOf[0]+1, outOf[1], inFile),
+			fmt.Sprintf("[%d/%d] Encrypting: %s", outOf[0]+1, outOf[1], inFile),
 		),
 	)
-	header, err := encryption.EncryptHeadless(inReader, password, keyfileReaders, settings, io.MultiWriter(outWriter, bar), nil)
+	header, err := encryption.EncryptHeadless(inReader, password, asReaders(keyfileReaders), settings, io.MultiWriter(outWriter, bar), nil)
 	bar.Finish() // don't catch the error, fine to ignore
 	if err != nil {
 		return fmt.Errorf("encrypting %s: %w", inFile, err)
@@ -148,29 +167,16 @@ func decrypt(
 	keep bool,
 	overwrite bool,
 ) error {
-	inReader, err := os.Open(inFile)
+	outFile := strings.TrimSuffix(inFile, ".pcv")
+	inReader, keyfileReaders, outWriter, err := openFiles(inFile, keyfiles, outFile, overwrite)
 	if err != nil {
-		return fmt.Errorf("opening %s: %w", inFile, err)
+		return fmt.Errorf("opening files: %w", err)
 	}
-	defer inReader.Close()
-	keyfileReaders := []io.Reader{}
-	for _, keyfile := range keyfiles {
-		reader, err := os.Open(keyfile)
-		if err != nil {
-			return fmt.Errorf("opening %s: %w", keyfile, err)
+	defer func() {
+		for _, reader := range append(keyfileReaders, inReader, outWriter) {
+			reader.Close()
 		}
-		defer reader.Close()
-		keyfileReaders = append(keyfileReaders, reader)
-	}
-	outFile := inFile[:len(inFile)-4]
-	_, err = os.Stat(outFile)
-	if err == nil && !overwrite {
-		return fmt.Errorf("%s already exists", outFile)
-	}
-	outWriter, err := os.Create(outFile)
-	if err != nil {
-		return fmt.Errorf("creating %s: %w", outFile, err)
-	}
+	}()
 
 	bar := progressbar.NewOptions(
 		-1,
@@ -182,7 +188,7 @@ func decrypt(
 	)
 	damaged, err := encryption.Decrypt(
 		password,
-		keyfileReaders,
+		asReaders(keyfileReaders),
 		inReader,
 		io.MultiWriter(outWriter, bar),
 		false,
