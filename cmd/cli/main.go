@@ -151,8 +151,7 @@ func decrypt(
 		keyfileReaders,
 		inReader,
 		outWriter,
-		true,
-		true,
+		false,
 		nil,
 	)
 

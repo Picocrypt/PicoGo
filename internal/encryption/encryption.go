@@ -41,7 +41,6 @@ func Decrypt(
 	r io.Reader,
 	w io.Writer,
 	skipReedSolomon bool,
-	ignoreCorruption bool,
 	update chan Update,
 ) (bool, error) {
 
@@ -52,7 +51,6 @@ func Decrypt(
 	start := getNow()
 	count := 0
 	total := 0
-	corruptionIgnored := false
 	for {
 		now := getNow()
 		if now-start > 1.0 {
@@ -75,11 +73,7 @@ func Decrypt(
 		}
 		p, err = decryptStream.stream(p[:n])
 		if err != nil {
-			if errors.Is(err, ErrBodyCorrupted) && ignoreCorruption {
-				corruptionIgnored = true
-			} else {
-				return damageTracker.damage, err
-			}
+			return damageTracker.damage, err
 		}
 		_, err = w.Write(p)
 		if err != nil {
@@ -88,18 +82,12 @@ func Decrypt(
 		count += len(p)
 		total += len(p)
 		if eof {
-			if corruptionIgnored {
-				return damageTracker.damage, ErrBodyCorrupted
-			}
 			p, err := decryptStream.flush()
-			if err != nil {
-				return damageTracker.damage, err
+			if (err == nil) | errors.Is(err, Err BodyCorrupted) {
+				_, e := w.Write(p)
+				return damageTracker.damage, e
 			}
-			_, err = w.Write(p)
-			if err != nil {
-				return damageTracker.damage, err
-			}
-			return damageTracker.damage, nil
+			return damageTracker.damage, err
 		}
 	}
 }
