@@ -199,7 +199,7 @@ func testDecryption(example Example, t *testing.T) {
 	}
 
 	w := bytes.NewBuffer([]byte{})
-	damaged, err := Decrypt(example.password, kf, r, w, false, false, nil)
+	damaged, err := Decrypt(example.password, kf, r, w, false, nil)
 	if damaged {
 		t.Fatal("damaged data")
 	}
