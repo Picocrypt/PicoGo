@@ -1,13 +1,13 @@
 package encryption
 
 import (
+	"crypto/sha256"
 	"encoding/hex"
 	"hash"
 	"io"
+	"log"
 	"os"
 	"testing"
-
-	"golang.org/x/crypto/sha3"
 )
 
 /*
@@ -39,7 +39,8 @@ func (z *zeroReader) Read(p []byte) (n int, err error) {
 		p[i] = 0
 		z.counter++
 		if z.counter == z.size {
-			return i, nil
+			log.Println("reached size ", z.size)
+			return i + 1, nil
 		}
 	}
 	return len(p), nil
@@ -53,6 +54,7 @@ type shaDecryptWriter struct {
 
 func (s *shaDecryptWriter) Write(p []byte) (int, error) {
 	_, err := s.encryptedSha.Write(p)
+	log.Println("encrypted size: ", len(p))
 	if err != nil {
 		return 0, err
 	}
@@ -60,6 +62,8 @@ func (s *shaDecryptWriter) Write(p []byte) (int, error) {
 	if err != nil {
 		return 0, err
 	}
+	log.Println("decrypted size: ", len(decoded))
+	log.Println(decoded)
 	_, err = s.decryptedSha.Write(decoded)
 	if err != nil {
 		return 0, err
@@ -69,6 +73,7 @@ func (s *shaDecryptWriter) Write(p []byte) (int, error) {
 
 func (s *shaDecryptWriter) shas() ([]byte, []byte, error) {
 	decoded, err := s.decryptStream.flush()
+	log.Println("flush size: ", len(decoded))
 	if err != nil {
 		return nil, nil, err
 	}
@@ -98,7 +103,7 @@ func compareShas(
 	}
 
 	damageTracker := &damageTracker{}
-	writer := &shaDecryptWriter{makeDecryptStream(password, nil, damageTracker), sha3.New256(), sha3.New256()}
+	writer := &shaDecryptWriter{makeDecryptStream(password, nil, damageTracker), sha256.New(), sha256.New()}
 	_, err = writer.Write(headerBytes)
 	if err != nil {
 		t.Fatal("writing header:", err)
@@ -131,15 +136,14 @@ func compareShas(
 	}
 }
 
-func TestLargeFile_V124(t *testing.T) {
-	// TODO actually make the real test - these are just dummy values
+func TestSmallFile(t *testing.T) {
+	// Small test encoded with picogo, 1K file size
 	compareShas(
 		t,
 		"password",
-		"hugefile.header",
-		"0e3e9b3b4e",
-		"0e3e9b3b4e",
-		//61*(1<<30),
-		100,
+		"examples/smallfile.header",
+		"b501219c59855b8ba2e00fe2cc9ec9fd0b189f16a750f4593fd79964d2bed427",
+		"5f70bf18a086007016e948b04aed3b82103a36bea41755b6cddfaf10ace3c6ef",
+		(1 << 10), // 1K
 	)
 }
