@@ -358,6 +358,8 @@ type decryptStream struct {
 	headerStream  *headerStream
 	bodyStreams   []streamerFlusher
 	damageTracker *damageTracker
+	inChan chan []byte
+	outChan chan []byte
 }
 
 func (ds *decryptStream) stream(p []byte) ([]byte, error) {
@@ -371,10 +373,26 @@ func (ds *decryptStream) stream(p []byte) ([]byte, error) {
 			if err != nil {
 				return nil, err
 			}
+			ds.inChan, ds.outChan = startRiver(ds.bodyStreams)
 		}
-		return streamStack(ds.bodyStreams, p)
+		ds.inChan <- p
 	}
-	return p, nil
+	if ds.outChan == nil {
+		return nil, nil
+	}
+	if true {
+		x := <- ds.outChan
+		return x, nil
+	}
+	p = make([]byte, 0)
+	for {
+		select {
+		case x := <- ds.outChan:
+			p = append(p, x...)
+		default:
+			return p, nil
+		}
+	}
 }
 
 func (ds *decryptStream) flush() ([]byte, error) {
@@ -384,7 +402,17 @@ func (ds *decryptStream) flush() ([]byte, error) {
 	if ds.bodyStreams == nil {
 		return nil, nil
 	}
-	return flushStack(ds.bodyStreams)
+	//return flushStack(ds.bodyStreams)
+	close(ds.inChan)
+	p := make([]byte, 0)
+	for {
+		x, ok := <- ds.outChan
+		if !ok {
+			break
+		}
+		p = append(p, x...)
+	}
+	return p, nil
 }
 
 func (ds *decryptStream) makeBodyStreams() ([]streamerFlusher, error) {
@@ -444,4 +472,32 @@ func validateKeys(header *header, password string, keyfiles []io.Reader) (keys, 
 		return keys, ErrIncorrectKeyfiles
 	}
 	return keys, nil
+}
+
+func startStream(in chan []byte, out chan []byte, stream streamerFlusher, i int) {
+	go func() {
+		for {
+			p, ok := <- in
+			if !ok {
+				p, _ = stream.flush()
+				out <- p
+				close(out)
+				return
+			}
+			p, _ = stream.stream(p)
+			out <- p
+		}
+	}()
+}
+
+func startRiver(streams []streamerFlusher) (chan []byte, chan []byte) {
+	in := make(chan []byte, 3)
+	firstIn := in
+	out := make(chan []byte, 3)
+	for i, s := range streams {
+		out = make(chan []byte, 3)
+		startStream(in, out, s, i)
+		in = out
+	}
+	return firstIn, out
 }

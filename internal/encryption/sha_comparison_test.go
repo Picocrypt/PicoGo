@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"hash"
 	"io"
-	"log"
 	"os"
 	"testing"
 )
@@ -39,7 +38,6 @@ func (z *zeroReader) Read(p []byte) (n int, err error) {
 		p[i] = 0
 		z.counter++
 		if z.counter == z.size {
-			log.Println("reached size ", z.size)
 			return i + 1, nil
 		}
 	}
@@ -54,7 +52,6 @@ type shaDecryptWriter struct {
 
 func (s *shaDecryptWriter) Write(p []byte) (int, error) {
 	_, err := s.encryptedSha.Write(p)
-	log.Println("encrypted size: ", len(p))
 	if err != nil {
 		return 0, err
 	}
@@ -62,8 +59,6 @@ func (s *shaDecryptWriter) Write(p []byte) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	log.Println("decrypted size: ", len(decoded))
-	log.Println(decoded)
 	_, err = s.decryptedSha.Write(decoded)
 	if err != nil {
 		return 0, err
@@ -73,7 +68,6 @@ func (s *shaDecryptWriter) Write(p []byte) (int, error) {
 
 func (s *shaDecryptWriter) shas() ([]byte, []byte, error) {
 	decoded, err := s.decryptStream.flush()
-	log.Println("flush size: ", len(decoded))
 	if err != nil {
 		return nil, nil, err
 	}
@@ -144,6 +138,19 @@ func TestSmallFile(t *testing.T) {
 		"examples/smallfile.header",
 		"b501219c59855b8ba2e00fe2cc9ec9fd0b189f16a750f4593fd79964d2bed427",
 		"5f70bf18a086007016e948b04aed3b82103a36bea41755b6cddfaf10ace3c6ef",
-		(1 << 10), // 1K
+		//(1 << 10), // 1K
+		(1<<30),
+	)
+}
+
+func TestMediumFile(t *testing.T) {
+	// Small test encoded with picogo, 1K file size
+	compareShas(
+		t,
+		"password",
+		"examples/mediumfile.header",
+		"a55220e8a5806e0dfbb280128336f71013d1eea116848a200134b965434a2a01",
+		"49bc20df15e412a64472421e13fe86ff1c5165e18b2afccf160d4dc19fe68a14",
+		1073741824,
 	)
 }
