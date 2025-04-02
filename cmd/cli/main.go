@@ -135,6 +135,7 @@ func encrypt(
 
 	bar := progressbar.NewOptions(
 		-1,
+		progressbar.OptionShowBytes(true),
 		progressbar.OptionClearOnFinish(),
 		progressbar.OptionUseIECUnits(true),
 		progressbar.OptionSetDescription(
@@ -180,6 +181,7 @@ func decrypt(
 
 	bar := progressbar.NewOptions(
 		-1,
+		progressbar.OptionShowBytes(true),
 		progressbar.OptionClearOnFinish(),
 		progressbar.OptionUseIECUnits(true),
 		progressbar.OptionSetDescription(
