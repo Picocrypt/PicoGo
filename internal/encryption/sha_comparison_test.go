@@ -43,6 +43,7 @@ func (z *zeroReader) Read(p []byte) (n int, err error) {
 			return i + 1, nil
 		}
 	}
+	// log.Println("have read ", z.counter)
 	return len(p), nil
 }
 
@@ -54,7 +55,6 @@ type shaDecryptWriter struct {
 
 func (s *shaDecryptWriter) Write(p []byte) (int, error) {
 	_, err := s.encryptedSha.Write(p)
-	log.Println("encrypted size: ", len(p))
 	if err != nil {
 		return 0, err
 	}
@@ -62,8 +62,6 @@ func (s *shaDecryptWriter) Write(p []byte) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	log.Println("decrypted size: ", len(decoded))
-	log.Println(decoded)
 	_, err = s.decryptedSha.Write(decoded)
 	if err != nil {
 		return 0, err
@@ -145,5 +143,17 @@ func TestSmallFile(t *testing.T) {
 		"b501219c59855b8ba2e00fe2cc9ec9fd0b189f16a750f4593fd79964d2bed427",
 		"5f70bf18a086007016e948b04aed3b82103a36bea41755b6cddfaf10ace3c6ef",
 		(1 << 10), // 1K
+	)
+}
+
+func TestLargeFile(t *testing.T) {
+	// Large test encoded with picogo, 65GB file size
+	compareShas(
+		t,
+		"password",
+		"examples/largefile.header",
+		"b65d470bfb6c9e07f09811244597f88177ba4cc68ae101002d5c5c8a6cf08500",
+		"f3f0d678fa138e4581ed15ec63f8cb965e5d7b722db7d5fc4877e763163d399c",
+		65498251264,
 	)
 }
