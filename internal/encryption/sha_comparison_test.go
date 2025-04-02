@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"hash"
 	"io"
-	"log"
 	"os"
 	"testing"
 )
@@ -39,11 +38,9 @@ func (z *zeroReader) Read(p []byte) (n int, err error) {
 		p[i] = 0
 		z.counter++
 		if z.counter == z.size {
-			log.Println("reached size ", z.size)
 			return i + 1, nil
 		}
 	}
-	// log.Println("have read ", z.counter)
 	return len(p), nil
 }
 
@@ -71,7 +68,6 @@ func (s *shaDecryptWriter) Write(p []byte) (int, error) {
 
 func (s *shaDecryptWriter) shas() ([]byte, []byte, error) {
 	decoded, err := s.decryptStream.flush()
-	log.Println("flush size: ", len(decoded))
 	if err != nil {
 		return nil, nil, err
 	}
@@ -135,7 +131,7 @@ func compareShas(
 }
 
 func TestSmallFile(t *testing.T) {
-	// Small test encoded with picogo, 1K file size
+	// Test 1K file of zeros
 	compareShas(
 		t,
 		"password",
@@ -147,7 +143,7 @@ func TestSmallFile(t *testing.T) {
 }
 
 func TestLargeFile(t *testing.T) {
-	// Large test encoded with picogo, 65GB file size
+	// Test 65GB file of zeros
 	compareShas(
 		t,
 		"password",
