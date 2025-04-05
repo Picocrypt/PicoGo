@@ -24,6 +24,6 @@ jobs:
         run: go test ./... -coverprofile=./cover.out -covermode=atomic -coverpkg=./... -timeout 20m
 
       - name: check test coverage
-        uses: vladopajic/go-test-coverage@v2.13.1
+        uses: vladopajic/go-test-coverage@f080863892c102695c8066abc08aae12e3e94e1b # v2.13.1
         with:
           config: ./.testcoverage.yml
