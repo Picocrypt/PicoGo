@@ -11,9 +11,6 @@ on:
 
 jobs:
   test-coverage:
-    steps:
-    - uses: actions/checkout@v4
-
     name: Go test coverage check
     runs-on: ubuntu-latest
     steps:
