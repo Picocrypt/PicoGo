@@ -42,3 +42,5 @@ jobs:
         uses: vladopajic/go-test-coverage@f080863892c102695c8066abc08aae12e3e94e1b # v2.13.1
         with:
           config: ./.testcoverage.yml
+          git-token: ${{ github.ref_name == 'main' && secrets.GITHUB_TOKEN || '' }}
+          git-branch: badges
