@@ -117,24 +117,28 @@ func chooseSaveAs(logger *ui.Logger, state *ui.State, window fyne.Window) {
 		if writer != nil {
 			defer writer.Close()
 		}
-		logger.Log("Chose save as", *state, err)
 		if err != nil {
+			logger.Log("Failed while choosing where to save output", *state, err)
 			dialog.ShowError(err, window)
 			return
 		}
 		if writer != nil {
 			saveAs := ui.NewFileDesc(writer.URI())
 			state.SaveAs = &saveAs
-			logger.Log("Set save as", *state, nil)
+			logger.Log("Chose where to save output", *state, nil)
 		} else {
-			logger.Log("Set save as", *state, errors.New("no file chosen"))
+			logger.Log("Canceled choosing where to save output", *state, nil)
 		}
 	}, window)
-	if state.IsEncrypting() {
-		d.SetFileName(state.Input().Name() + ".pcv")
+	if input := state.Input(); input == nil {
+		logger.Log("Failed to seed filename", *state, errors.New("input is nil"))
 	} else {
-		// remove .pcv from the end of the filename
-		d.SetFileName(state.Input().Name()[:len(state.Input().Name())-4])
+		if state.IsEncrypting() {
+			d.SetFileName(input.Name() + ".pcv")
+		} else {
+			d.SetFileName(input.Name()[:len(state.Input().Name())-4])
+
+		}
 	}
 	d.Show()
 }
@@ -144,10 +148,9 @@ func saveOutput(logger *ui.Logger, state *ui.State, window fyne.Window, app fyne
 		return
 	}
 	defer func() { state.SaveAs = nil }()
-	logger.Log("Saving output", *state, nil)
 	outputURI, err := getOutputURI(app)
 	if err != nil {
-		logger.Log("Saving output: get output URI", *state, err)
+		logger.Log("Get output uri", *state, err)
 		dialog.ShowError(err, window)
 		return
 	}
@@ -156,7 +159,7 @@ func saveOutput(logger *ui.Logger, state *ui.State, window fyne.Window, app fyne
 		defer output.Close()
 	}
 	if err != nil {
-		logger.Log("Saving output: get output reader", *state, err)
+		logger.Log("Get output reader", *state, err)
 		dialog.ShowError(err, window)
 		return
 	}
@@ -165,14 +168,13 @@ func saveOutput(logger *ui.Logger, state *ui.State, window fyne.Window, app fyne
 		defer saveAs.Close()
 	}
 	if err != nil {
-		logger.Log("Saving output: get save as writer", *state, err)
+		logger.Log("Get save as writer", *state, err)
 		dialog.ShowError(err, window)
 		return
 	}
 	errCh := make(chan error)
 	go func() {
 		_, err := io.Copy(saveAs, output)
-		logger.Log("Saving output: copy", *state, err)
 		errCh <- err
 	}()
 
@@ -189,12 +191,12 @@ func saveOutput(logger *ui.Logger, state *ui.State, window fyne.Window, app fyne
 		select {
 		case err := <-errCh:
 			d.Hide()
+			logger.Log("Saving output", *state, err)
 			if err != nil {
-				logger.Log("Saving output: copy (external)", *state, err)
 				dialog.ShowError(err, window)
 			}
 			err = clearOutputFile(app)
-			logger.Log("Saving output: clear output file", *state, err)
+			logger.Log("Clearing output file", *state, err)
 			if err != nil {
 				dialog.ShowError(err, window)
 			}
@@ -210,10 +212,10 @@ func encrypt(logger *ui.Logger, state *ui.State, win fyne.Window, app fyne.App) 
 	errCh := make(chan error)
 
 	go func() {
-		logger.Log("encrypt: start", *state, nil)
+		logger.Log("Start encryption routine", *state, nil)
 		headlessURI, err := getHeadlessURI(app)
 		if err != nil {
-			logger.Log("encrypt: get headless URI", *state, err)
+			logger.Log("Get headless URI", *state, err)
 			errCh <- err
 			return
 		}
@@ -222,7 +224,7 @@ func encrypt(logger *ui.Logger, state *ui.State, win fyne.Window, app fyne.App) 
 			defer input.Close()
 		}
 		if err != nil {
-			logger.Log("encrypt: get input reader", *state, err)
+			logger.Log("Get input reader", *state, err)
 			errCh <- err
 			return
 		}
@@ -233,7 +235,7 @@ func encrypt(logger *ui.Logger, state *ui.State, win fyne.Window, app fyne.App) 
 			defer headlessWriter.Close()
 		}
 		if err != nil {
-			logger.Log("encrypt: get headless writer", *state, err)
+			logger.Log("Get headless writer", *state, err)
 			errCh <- err
 			return
 		}
@@ -244,8 +246,8 @@ func encrypt(logger *ui.Logger, state *ui.State, win fyne.Window, app fyne.App) 
 			if r != nil {
 				defer r.Close()
 			}
-			logger.Log("encrypt: get keyfile reader "+strconv.Itoa(i), *state, err)
 			if err != nil {
+				logger.Log("Get keyfile reader "+strconv.Itoa(i), *state, err)
 				errCh <- err
 				return
 			}
@@ -261,40 +263,42 @@ func encrypt(logger *ui.Logger, state *ui.State, win fyne.Window, app fyne.App) 
 		header, err := encryption.EncryptHeadless(
 			input, state.Password, keyfiles, settings, headlessWriter, updateCh,
 		)
-		logger.Log("encrypt: encrypt headless", *state, err)
 		if err != nil {
+			logger.Log("Encrypt headless", *state, err)
 			errCh <- err
 			return
 		}
 
 		headlessReader, err := storage.Reader(headlessURI)
-		logger.Log("encrypt: get headless reader", *state, err)
 		if headlessReader != nil {
 			defer headlessReader.Close()
 		}
 		if err != nil {
+			logger.Log("Get headless reader", *state, err)
 			errCh <- err
 			return
 		}
 
 		outputURI, err := getOutputURI(app)
-		logger.Log("encrypt: get output URI", *state, err)
 		if err != nil {
+			logger.Log("Get output uri", *state, err)
 			errCh <- err
 			return
 		}
 		output, err := storage.Writer(outputURI)
-		logger.Log("encrypt: get output writer", *state, err)
 		if output != nil {
 			defer output.Close()
 		}
 		if err != nil {
+			logger.Log("Get output writer", *state, err)
 			errCh <- err
 			return
 		}
 
 		err = encryption.PrependHeader(headlessReader, output, header)
-		logger.Log("encrypt: prepend header", *state, err)
+		if err != nil {
+			logger.Log("Prepend header", *state, err)
+		}
 		errCh <- err
 	}()
 
@@ -323,7 +327,7 @@ func encrypt(logger *ui.Logger, state *ui.State, win fyne.Window, app fyne.App) 
 			break
 		}
 	}
-	logger.Log("encrypt: encryption complete", *state, encryptErr)
+	logger.Log("Complete encryption", *state, encryptErr)
 	if encryptErr != nil {
 		dialog.ShowError(encryptErr, win)
 		return
@@ -352,8 +356,8 @@ func tryDecrypt(
 	app fyne.App,
 ) (bool, error) {
 	input, err := uriReadCloser(state.Input().Uri())
-	logger.Log("tryDecrypt: get input reader", *state, err)
 	if err != nil {
+		logger.Log("Get input reader", *state, err)
 		return false, err
 	}
 	defer input.Close()
@@ -361,8 +365,8 @@ func tryDecrypt(
 	keyfiles := []io.Reader{}
 	for i := 0; i < len(state.Keyfiles); i++ {
 		r, err := uriReadCloser(state.Keyfiles[i].Uri())
-		logger.Log("tryDecrypt: get keyfile reader "+strconv.Itoa(i), *state, err)
 		if err != nil {
+			logger.Log("tryDecrypt: get keyfile reader "+strconv.Itoa(i), *state, err)
 			return false, err
 		}
 		defer r.Close()
@@ -370,13 +374,13 @@ func tryDecrypt(
 	}
 
 	outputURI, err := getOutputURI(app)
-	logger.Log("tryDecrypt: get output URI", *state, err)
 	if err != nil {
+		logger.Log("Get output URI", *state, err)
 		return false, err
 	}
 	output, err := uriWriteCloser(outputURI.String())
-	logger.Log("tryDecrypt: get output writer", *state, err)
 	if err != nil {
+		logger.Log("Get output writer", *state, err)
 		return false, err
 	}
 	defer output.Close()
@@ -387,9 +391,8 @@ func tryDecrypt(
 		error
 	})
 	go func() {
-		logger.Log("tryDecrypt: decrypt start", *state, nil)
+		logger.Log("Decryption routine start", *state, nil)
 		damaged, err := encryption.Decrypt(state.Password, keyfiles, input, output, recoveryMode, updateCh)
-		logger.Log("tryDecrypt: decrypt complete", *state, err)
 		errCh <- struct {
 			bool
 			error
@@ -410,7 +413,7 @@ func tryDecrypt(
 			status.SetText(update.Status)
 		case err := <-errCh:
 			d.Hide()
-			logger.Log("tryDecrypt: complete", *state, err.error)
+			logger.Log("Decryption routine end", *state, err.error)
 			return err.bool, err.error
 		default:
 			time.Sleep(time.Second / 10)
@@ -420,7 +423,6 @@ func tryDecrypt(
 
 func decrypt(logger *ui.Logger, state *ui.State, win fyne.Window, app fyne.App) {
 	damaged, err := tryDecrypt(logger, state, false, win, app)
-	logger.Log("decrypt: tryDecrypt complete", *state, err)
 	recoveryMode := false
 	recoveryCanceled := false
 	if errors.Is(err, encryption.ErrBodyCorrupted) {
@@ -435,12 +437,10 @@ func decrypt(logger *ui.Logger, state *ui.State, win fyne.Window, app fyne.App) 
 			text,
 			func(b bool) {
 				if b {
-					logger.Log("decrypt: try again in recovery mode", *state, nil)
+					logger.Log("Retrying decryption in recovery mode", *state, nil)
 					recoveryMode = true
 					damaged, err = tryDecrypt(logger, state, true, win, app)
-					logger.Log("decrypt: try again in recovery mode complete", *state, err)
 				} else {
-					logger.Log("decrypt: recovery mode canceled", *state, nil)
 					recoveryCanceled = true
 				}
 				doneCh <- struct{}{}
@@ -453,7 +453,7 @@ func decrypt(logger *ui.Logger, state *ui.State, win fyne.Window, app fyne.App) 
 		return
 	}
 
-	logger.Log("decrypt: handling result (damaged:"+strconv.FormatBool(damaged)+")", *state, err)
+	logger.Log("Handle decryption result (damaged:"+strconv.FormatBool(damaged)+")", *state, err)
 	msg := ""
 	save := false
 	if err == nil && !damaged {
@@ -499,14 +499,11 @@ func decrypt(logger *ui.Logger, state *ui.State, win fyne.Window, app fyne.App) 
 			func(b bool) {
 				if b {
 					chooseSaveAs(logger, state, win)
-				} else {
-					logger.Log("decrypt: save canceled", *state, nil)
 				}
 			},
 			win,
 		)
 	} else {
-		logger.Log("decrypt: cannot save", *state, err)
 		dialog.ShowError(errors.New(msg), win)
 	}
 }
@@ -536,17 +533,17 @@ func makeKeyfileBtn(logger *ui.Logger, state *ui.State, window fyne.Window) *wid
 				if reader != nil {
 					defer reader.Close()
 				}
-				logger.Log("Adding keyfile", *state, err)
 				if err != nil {
+					logger.Log("Adding keyfile failed", *state, err)
 					dialog.ShowError(err, window)
 					return
 				}
 				if reader != nil {
 					state.AddKeyfile(reader.URI())
-					logger.Log("Adding keyfile: complete", *state, nil)
+					logger.Log("Adding keyfile complete", *state, nil)
 					updateText()
 				} else {
-					logger.Log("Adding keyfile: canceled", *state, nil)
+					logger.Log("Adding keyfile canceled", *state, nil)
 				}
 			}, window)
 			fd.Show()
@@ -556,8 +553,8 @@ func makeKeyfileBtn(logger *ui.Logger, state *ui.State, window fyne.Window) *wid
 				if writer != nil {
 					defer writer.Close()
 				}
-				logger.Log("Creating keyfile", *state, err)
 				if err != nil {
+					logger.Log("Creating keyfile failed", *state, err)
 					dialog.ShowError(err, window)
 					return
 				}
@@ -565,21 +562,21 @@ func makeKeyfileBtn(logger *ui.Logger, state *ui.State, window fyne.Window) *wid
 					data := make([]byte, 32)
 					_, err := rand.Read(data)
 					if err != nil {
-						logger.Log("Creating keyfile: random data", *state, err)
+						logger.Log("Creating keyfile data failed", *state, err)
 						dialog.ShowError(err, window)
 						return
 					}
 					_, err = writer.Write(data)
 					if err != nil {
-						logger.Log("Creating keyfile: write", *state, err)
+						logger.Log("Writing keyfile failed", *state, err)
 						dialog.ShowError(err, window)
 						return
 					}
 					state.AddKeyfile(writer.URI())
-					logger.Log("Creating keyfile: complete", *state, nil)
+					logger.Log("Created keyfile", *state, nil)
 					updateText()
 				} else {
-					logger.Log("Creating keyfile: canceled", *state, nil)
+					logger.Log("Creating keyfile canceled", *state, nil)
 				}
 			}, window)
 			fd.SetFileName("Keyfile")
@@ -587,7 +584,7 @@ func makeKeyfileBtn(logger *ui.Logger, state *ui.State, window fyne.Window) *wid
 		})
 		clearBtn := widget.NewButtonWithIcon("Clear", theme.ContentClearIcon(), func() {
 			state.Keyfiles = state.Keyfiles[:0]
-			logger.Log("Clearing keyfiles", *state, nil)
+			logger.Log("Cleared keyfiles", *state, nil)
 			updateText()
 		})
 		orderedKeyfiles := widget.NewCheckWithData("Require correct order", binding.BindBool(&(*state).OrderedKeyfiles))
@@ -684,12 +681,12 @@ func main() {
 				defer reader.Close()
 			}
 			if err != nil {
-				logger.Log("Choosing file to encrypt/decrypt", state, err)
+				logger.Log("Choosing file to encrypt/decrypt failed", state, err)
 				dialog.ShowError(err, w)
 				return
 			}
 			if reader == nil {
-				logger.Log("Choosing file to encrypt/decrypt", state, errors.New("no file chosen"))
+				logger.Log("Choosing file to encrypt/decrypt failed", state, errors.New("no file chosen"))
 				return
 			}
 			err = state.SetInput(reader.URI())
