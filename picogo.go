@@ -626,6 +626,7 @@ func writeLogs(logger ui.Logger, window fyne.Window) {
 			defer writer.Close()
 		}
 		if err != nil {
+			dialog.ShowError(err, window)
 			return
 		}
 		if writer != nil {
