@@ -191,13 +191,13 @@ func saveOutput(logger *ui.Logger, state *ui.State, window fyne.Window, app fyne
 		select {
 		case err := <-errCh:
 			d.Hide()
-			logger.Log("Saving output", *state, err)
 			if err != nil {
+				logger.Log("Saving output", *state, err)
 				dialog.ShowError(err, window)
 			}
 			err = clearOutputFile(app)
-			logger.Log("Clearing output file", *state, err)
 			if err != nil {
+				logger.Log("Clearing output file", *state, err)
 				dialog.ShowError(err, window)
 			}
 			return
