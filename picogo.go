@@ -62,73 +62,6 @@ func uriWriteCloser(uri string) (fyne.URIWriteCloser, error) {
 	return storage.Writer(fullUri)
 }
 
-type State struct {
-	InputURI        string
-	InputName       string
-	SaveAsURI       string
-	Comments        string
-	ReedSolomon     bool
-	Deniability     bool
-	Paranoid        bool
-	OrderedKeyfiles bool
-	IsEncrypting    bool
-	IsDecrypting    bool
-	KeyfileURIs     []string
-	KeyfileNames    []string
-	Password        string
-	ConfirmPassword string
-}
-
-func (s *State) SetInputURI(input fyne.URI) error {
-	s.Clear()
-	s.InputURI = input.String()
-	s.InputName = input.Name()
-	s.IsEncrypting = input.Extension() != ".pcv"
-	s.IsDecrypting = !s.IsEncrypting
-
-	if s.IsDecrypting {
-		reader, err := storage.Reader(input)
-		if reader != nil {
-			defer reader.Close()
-		}
-		if err != nil {
-			return err
-		}
-		settings, err := encryption.GetEncryptionSettings(reader)
-		if err != nil {
-			return err
-		}
-		s.Comments = settings.Comments
-		s.ReedSolomon = settings.ReedSolomon
-		s.Deniability = settings.Deniability
-		s.Paranoid = settings.Paranoid
-		s.OrderedKeyfiles = settings.OrderedKf
-	}
-	return nil
-}
-
-func (s *State) AddKeyfileURI(uri fyne.URI) {
-	s.KeyfileNames = append(s.KeyfileNames, uri.Name())
-	s.KeyfileURIs = append(s.KeyfileURIs, uri.String())
-}
-
-func (s *State) Clear() {
-	s.InputURI = ""
-	s.InputName = ""
-	s.SaveAsURI = ""
-	s.Comments = ""
-	s.ReedSolomon = false
-	s.Deniability = false
-	s.Paranoid = false
-	s.OrderedKeyfiles = false
-	s.IsEncrypting = false
-	s.IsDecrypting = false
-	s.KeyfileURIs = []string{}
-	s.KeyfileNames = []string{}
-	s.Password = ""
-	s.ConfirmPassword = ""
-}
-
 type UpdateMethods struct {
 	funcs []func()
 }
@@ -179,7 +112,7 @@ func clearOutputFile(app fyne.App) error {
 	return clearFile(outputURI)
 }
 
-func chooseSaveAs(state *State, window fyne.Window) {
+func chooseSaveAs(state *ui.State, window fyne.Window) {
 	d := dialog.NewFileSave(func(writer fyne.URIWriteCloser, err error) {
 		if writer != nil {
 			defer writer.Close()
@@ -189,23 +122,24 @@ func chooseSaveAs(state *State, window fyne.Window) {
 			return
 		}
 		if writer != nil {
-			state.SaveAsURI = writer.URI().String()
+			saveAs := ui.NewFileDesc(writer.URI())
+			state.SaveAs = &saveAs
 		}
 	}, window)
-	if state.IsEncrypting {
-		d.SetFileName(state.InputName + ".pcv")
+	if state.IsEncrypting() {
+		d.SetFileName(state.Input().Name() + ".pcv")
 	} else {
 		// remove .pcv from the end of the filename
-		d.SetFileName(state.InputName[:len(state.InputName)-4])
+		d.SetFileName(state.Input().Name()[:len(state.Input().Name())-4])
 	}
 	d.Show()
 }
 
-func saveOutput(state *State, window fyne.Window, app fyne.App) {
-	if state.SaveAsURI == "" {
+func saveOutput(state *ui.State, window fyne.Window, app fyne.App) {
+	if state.SaveAs == nil {
 		return
 	}
-	defer func() { state.SaveAsURI = "" }()
+	defer func() { state.SaveAs = nil }()
 	outputURI, err := getOutputURI(app)
 	if err != nil {
 		dialog.ShowError(err, window)
@@ -219,7 +153,7 @@ func saveOutput(state *State, window fyne.Window, app fyne.App) {
 		dialog.ShowError(err, window)
 		return
 	}
-	saveAs, err := uriWriteCloser(state.SaveAsURI)
+	saveAs, err := uriWriteCloser(state.SaveAs.Uri())
 	if saveAs != nil {
 		defer saveAs.Close()
 	}
@@ -260,7 +194,7 @@ func saveOutput(state *State, window fyne.Window, app fyne.App) {
 	}
 }
 
-func encrypt(state *State, win fyne.Window, app fyne.App) {
+func encrypt(state *ui.State, win fyne.Window, app fyne.App) {
 	updateCh := make(chan encryption.Update)
 	errCh := make(chan error)
 
@@ -270,7 +204,7 @@ func encrypt(state *State, win fyne.Window, app fyne.App) {
 			errCh <- err
 			return
 		}
-		input, err := uriReadCloser(state.InputURI)
+		input, err := uriReadCloser(state.Input().Uri())
 		if input != nil {
 			defer input.Close()
 		}
@@ -290,8 +224,8 @@ func encrypt(state *State, win fyne.Window, app fyne.App) {
 		}
 
 		keyfiles := []io.Reader{}
-		for i := 0; i < len(state.KeyfileURIs); i++ {
-			r, err := uriReadCloser(state.KeyfileURIs[i])
+		for i := 0; i < len(state.Keyfiles); i++ {
+			r, err := uriReadCloser(state.Keyfiles[i].Uri())
 			if r != nil {
 				defer r.Close()
 			}
@@ -372,7 +306,7 @@ func encrypt(state *State, win fyne.Window, app fyne.App) {
 		dialog.ShowError(encryptErr, win)
 		return
 	}
-	text := widget.NewLabel(state.InputName + " has been encrypted.")
+	text := widget.NewLabel(state.Input().Name() + " has been encrypted.")
 	text.Wrapping = fyne.TextWrapWord
 	dialog.ShowCustomConfirm(
 		"Encryption Complete",
@@ -389,20 +323,20 @@ func encrypt(state *State, win fyne.Window, app fyne.App) {
 }
 
 func tryDecrypt(
-	state *State,
+	state *ui.State,
 	recoveryMode bool,
 	w fyne.Window,
 	app fyne.App,
 ) (bool, error) {
-	input, err := uriReadCloser(state.InputURI)
+	input, err := uriReadCloser(state.Input().Uri())
 	if err != nil {
 		return false, err
 	}
 	defer input.Close()
 
 	keyfiles := []io.Reader{}
-	for i := 0; i < len(state.KeyfileURIs); i++ {
-		r, err := uriReadCloser(state.KeyfileURIs[i])
+	for i := 0; i < len(state.Keyfiles); i++ {
+		r, err := uriReadCloser(state.Keyfiles[i].Uri())
 		if err != nil {
 			return false, err
 		}
@@ -454,7 +388,7 @@ func tryDecrypt(
 	}
 }
 
-func decrypt(state *State, win fyne.Window, app fyne.App) {
+func decrypt(state *ui.State, win fyne.Window, app fyne.App) {
 	damaged, err := tryDecrypt(state, false, win, app)
 	recoveryMode := false
 	recoveryCanceled := false
@@ -488,10 +422,10 @@ func decrypt(state *State, win fyne.Window, app fyne.App) {
 	msg := ""
 	save := false
 	if err == nil && !damaged {
-		msg = state.InputName + " has been decrypted."
+		msg = state.Input().Name() + " has been decrypted."
 		save = true
 	} else if err == nil && damaged {
-		msg = state.InputName + " has been decrypted successfully, but it is damaged. Consider re-encryting and replacing the damaged file."
+		msg = state.Input().Name() + " has been decrypted successfully, but it is damaged. Consider re-encryting and replacing the damaged file."
 		save = true
 	} else {
 		switch {
@@ -547,12 +481,16 @@ func border() *canvas.Rectangle {
 	return b
 }
 
-func makeKeyfileBtn(state *State, window fyne.Window) *widget.Button {
+func makeKeyfileBtn(state *ui.State, window fyne.Window) *widget.Button {
 	btn := widget.NewButtonWithIcon("Keyfile", theme.ContentAddIcon(), func() {
 		text := widget.NewMultiLineEntry()
 		text.Disable()
 		updateText := func() {
-			text.SetText(strings.Join(state.KeyfileNames, "\n"))
+			names := []string{}
+			for _, k := range state.Keyfiles {
+				names = append(names, k.Name())
+			}
+			text.SetText(strings.Join(names, "\n"))
 		}
 		updateText()
 		addBtn := widget.NewButtonWithIcon("Add", theme.ContentAddIcon(), func() {
@@ -565,7 +503,7 @@ func makeKeyfileBtn(state *State, window fyne.Window) *widget.Button {
 					return
 				}
 				if reader != nil {
-					state.AddKeyfileURI(reader.URI())
+					state.AddKeyfile(reader.URI())
 					updateText()
 				}
 			}, window)
@@ -592,7 +530,7 @@ func makeKeyfileBtn(state *State, window fyne.Window) *widget.Button {
 						dialog.ShowError(err, window)
 						return
 					}
-					state.AddKeyfileURI(writer.URI())
+					state.AddKeyfile(writer.URI())
 					updateText()
 				}
 			}, window)
@@ -600,12 +538,11 @@ func makeKeyfileBtn(state *State, window fyne.Window) *widget.Button {
 			fd.Show()
 		})
 		clearBtn := widget.NewButtonWithIcon("Clear", theme.ContentClearIcon(), func() {
-			state.KeyfileURIs = []string{}
-			state.KeyfileNames = []string{}
+			state.Keyfiles = state.Keyfiles[:0]
 			updateText()
 		})
 		orderedKeyfiles := widget.NewCheckWithData("Require correct order", binding.BindBool(&(*state).OrderedKeyfiles))
-		if state.IsDecrypting {
+		if state.IsDecrypting() {
 			orderedKeyfiles.Disable()
 		}
 		c := container.New(
@@ -659,7 +596,7 @@ func main() {
 	w := a.NewWindow("PicoGo")
 	logger := ui.Logger{}
 
-	state := State{}
+	state := ui.State{}
 	updates := UpdateMethods{}
 
 	info := widget.NewButtonWithIcon("", theme.InfoIcon(), func() {
@@ -702,7 +639,7 @@ func main() {
 			if reader == nil {
 				return
 			}
-			err = state.SetInputURI(reader.URI())
+			err = state.SetInput(reader.URI())
 			if err != nil {
 				dialog.ShowError(err, w)
 			}
@@ -710,8 +647,7 @@ func main() {
 		fd.Show()
 	})
 
-	filenameBinding := binding.BindString(&state.InputName)
-	filename := widget.NewEntryWithData(filenameBinding)
+	filename := widget.NewEntry()
 	filename.Disable()
 	comments := widget.NewMultiLineEntry()
 	commentsBinding := binding.BindString(&state.Comments)
@@ -728,8 +664,13 @@ func main() {
 		),
 	)
 	updates.Add(func() {
-		filenameBinding.Reload()
-		if state.IsEncrypting {
+		input := state.Input()
+		if input == nil {
+			filename.SetText("")
+		} else {
+			filename.SetText(input.Name())
+		}
+		if state.IsEncrypting() {
 			if state.Deniability {
 				state.Comments = ""
 				commentsBinding.Reload()
@@ -761,7 +702,7 @@ func main() {
 	updates.Add(func() {
 		checks := []*widget.Check{reedSolomonCheck, paranoidCheck, deniabilityCheck}
 		for _, check := range checks {
-			if state.IsEncrypting {
+			if state.IsEncrypting() {
 				check.Enable()
 			} else {
 				check.Disable()
@@ -770,8 +711,8 @@ func main() {
 	})
 	keyfileBtn := makeKeyfileBtn(&state, w)
 	updates.Add(func() {
-		keyfileBtn.SetText("Keyfiles [" + strconv.Itoa(len(state.KeyfileURIs)) + "]")
-		if state.IsEncrypting || state.IsDecrypting {
+		keyfileBtn.SetText("Keyfiles [" + strconv.Itoa(len(state.Keyfiles)) + "]")
+		if state.IsEncrypting() || state.IsDecrypting() {
 			keyfileBtn.Enable()
 		} else {
 			keyfileBtn.Disable()
@@ -807,7 +748,7 @@ func main() {
 	password.Bind(passwordBinding)
 	password.Validator = nil
 	updates.Add(func() {
-		if state.IsDecrypting || state.IsEncrypting {
+		if state.IsDecrypting() || state.IsEncrypting() {
 			password.Enable()
 		} else {
 			password.Disable()
@@ -821,7 +762,7 @@ func main() {
 	updates.Add(func() {
 		passwordBinding.Reload()
 		confirmBinding.Reload()
-		if state.IsEncrypting {
+		if state.IsEncrypting() {
 			confirm.Show()
 		} else {
 			confirm.Hide()
@@ -840,13 +781,13 @@ func main() {
 	)
 
 	workBtn := widget.NewButton("Encrypt/Decrypt", func() {
-		if !(state.IsEncrypting || state.IsDecrypting) {
+		if !(state.IsEncrypting() || state.IsDecrypting()) {
 			// This should never happen (the button should be hidden), but check in case
 			// there is a race condition
 			dialog.ShowError(errors.New("no file chosen"), w)
 			return
 		}
-		if state.IsEncrypting {
+		if state.IsEncrypting() {
 			if state.Password != state.ConfirmPassword {
 				dialog.ShowError(errors.New("passwords do not match"), w)
 			} else if state.Password == "" {
@@ -859,10 +800,10 @@ func main() {
 		decrypt(&state, w, a)
 	})
 	updates.Add(func() {
-		if state.IsEncrypting {
+		if state.IsEncrypting() {
 			workBtn.SetText("Encrypt")
 			workBtn.Show()
-		} else if state.IsDecrypting {
+		} else if state.IsDecrypting() {
 			workBtn.SetText("Decrypt")
 			workBtn.Show()
 		} else {

@@ -65,14 +65,14 @@ func (s *State) IsEncrypting() bool {
 	if s.input == nil {
 		return false
 	}
-	return strings.HasSuffix(s.input.Name(), ".pcv")
+	return !strings.HasSuffix(s.input.Name(), ".pcv")
 }
 
 func (s *State) IsDecrypting() bool {
 	if s.input == nil {
 		return false
 	}
-	return !strings.HasSuffix(s.input.Name(), ".pcv")
+	return strings.HasSuffix(s.input.Name(), ".pcv")
 }
 
 func (s *State) SetInput(input fyne.URI) error {
