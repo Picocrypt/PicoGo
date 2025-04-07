@@ -3,6 +3,7 @@ package main
 import (
 	"crypto/rand"
 	"errors"
+	"fmt"
 	"image/color"
 	"io"
 	"strconv"
@@ -119,7 +120,7 @@ func chooseSaveAs(logger *ui.Logger, state *ui.State, window fyne.Window) {
 		}
 		if err != nil {
 			logger.Log("Failed while choosing where to save output", *state, err)
-			dialog.ShowError(err, window)
+			dialog.ShowError(fmt.Errorf("choosing output file: %w", err), window)
 			return
 		}
 		if writer != nil {
@@ -151,7 +152,7 @@ func saveOutput(logger *ui.Logger, state *ui.State, window fyne.Window, app fyne
 	outputURI, err := getOutputURI(app)
 	if err != nil {
 		logger.Log("Get output uri", *state, err)
-		dialog.ShowError(err, window)
+		dialog.ShowError(fmt.Errorf("finding output file: %w", err), window)
 		return
 	}
 	output, err := storage.Reader(outputURI)
@@ -160,7 +161,7 @@ func saveOutput(logger *ui.Logger, state *ui.State, window fyne.Window, app fyne
 	}
 	if err != nil {
 		logger.Log("Get output reader", *state, err)
-		dialog.ShowError(err, window)
+		dialog.ShowError(fmt.Errorf("opening output file: %w", err), window)
 		return
 	}
 	saveAs, err := uriWriteCloser(state.SaveAs.Uri())
@@ -169,7 +170,7 @@ func saveOutput(logger *ui.Logger, state *ui.State, window fyne.Window, app fyne
 	}
 	if err != nil {
 		logger.Log("Get save as writer", *state, err)
-		dialog.ShowError(err, window)
+		dialog.ShowError(fmt.Errorf("opening save-as file: %w", err), window)
 		return
 	}
 	errCh := make(chan error)
@@ -193,12 +194,12 @@ func saveOutput(logger *ui.Logger, state *ui.State, window fyne.Window, app fyne
 			d.Hide()
 			if err != nil {
 				logger.Log("Saving output", *state, err)
-				dialog.ShowError(err, window)
+				dialog.ShowError(fmt.Errorf("copying output: %w", err), window)
 			}
 			err = clearOutputFile(app)
 			if err != nil {
 				logger.Log("Clearing output file", *state, err)
-				dialog.ShowError(err, window)
+				dialog.ShowError(fmt.Errorf("cleaning tmp file: %w", err), window)
 			}
 			return
 		default:
@@ -329,7 +330,7 @@ func encrypt(logger *ui.Logger, state *ui.State, win fyne.Window, app fyne.App) 
 	}
 	logger.Log("Complete encryption", *state, encryptErr)
 	if encryptErr != nil {
-		dialog.ShowError(encryptErr, win)
+		dialog.ShowError(fmt.Errorf("encrypting: %w", encryptErr), win)
 		return
 	}
 	text := widget.NewLabel(state.Input().Name() + " has been encrypted.")
@@ -535,7 +536,7 @@ func makeKeyfileBtn(logger *ui.Logger, state *ui.State, window fyne.Window) *wid
 				}
 				if err != nil {
 					logger.Log("Adding keyfile failed", *state, err)
-					dialog.ShowError(err, window)
+					dialog.ShowError(fmt.Errorf("adding keyfile: %w", err), window)
 					return
 				}
 				if reader != nil {
@@ -555,7 +556,7 @@ func makeKeyfileBtn(logger *ui.Logger, state *ui.State, window fyne.Window) *wid
 				}
 				if err != nil {
 					logger.Log("Creating keyfile failed", *state, err)
-					dialog.ShowError(err, window)
+					dialog.ShowError(fmt.Errorf("creating keyfile: %w", err), window)
 					return
 				}
 				if writer != nil {
@@ -563,13 +564,13 @@ func makeKeyfileBtn(logger *ui.Logger, state *ui.State, window fyne.Window) *wid
 					_, err := rand.Read(data)
 					if err != nil {
 						logger.Log("Creating keyfile data failed", *state, err)
-						dialog.ShowError(err, window)
+						dialog.ShowError(fmt.Errorf("creating keyfile: %w", err), window)
 						return
 					}
 					_, err = writer.Write(data)
 					if err != nil {
 						logger.Log("Writing keyfile failed", *state, err)
-						dialog.ShowError(err, window)
+						dialog.ShowError(fmt.Errorf("writing keyfile: %w", err), window)
 						return
 					}
 					state.AddKeyfile(writer.URI())
@@ -626,7 +627,7 @@ func writeLogs(logger *ui.Logger, window fyne.Window) {
 			defer writer.Close()
 		}
 		if err != nil {
-			dialog.ShowError(err, window)
+			dialog.ShowError(fmt.Errorf("writing logs: %w", err), window)
 			return
 		}
 		if writer != nil {
@@ -683,7 +684,7 @@ func main() {
 			}
 			if err != nil {
 				logger.Log("Choosing file to encrypt/decrypt failed", state, err)
-				dialog.ShowError(err, w)
+				dialog.ShowError(fmt.Errorf("choosing file: %w", err), w)
 				return
 			}
 			if reader == nil {
@@ -693,7 +694,7 @@ func main() {
 			err = state.SetInput(reader.URI())
 			logger.Log("Setting file to encrypt/decrypt", state, err)
 			if err != nil {
-				dialog.ShowError(err, w)
+				dialog.ShowError(fmt.Errorf("choosing file: %w", err), w)
 			}
 		}, w)
 		fd.Show()
