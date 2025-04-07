@@ -366,7 +366,7 @@ func tryDecrypt(
 	for i := 0; i < len(state.Keyfiles); i++ {
 		r, err := uriReadCloser(state.Keyfiles[i].Uri())
 		if err != nil {
-			logger.Log("tryDecrypt: get keyfile reader "+strconv.Itoa(i), *state, err)
+			logger.Log("Get keyfile reader "+strconv.Itoa(i), *state, err)
 			return false, err
 		}
 		defer r.Close()
