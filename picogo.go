@@ -638,6 +638,21 @@ func developmentWarning(win fyne.Window) {
 	}
 }
 
+func writeLogs(window fyne.Window) {
+	msg := "Test log"
+	dialog.NewFileSave(func(writer fyne.URIWriteCloser, err error) {
+		if writer != nil {
+			defer writer.Close()
+		}
+		if err != nil {
+			return
+		}
+		if writer != nil {
+			writer.Write([]byte(msg))
+		}
+	}, window).Show()
+}
+
 func main() {
 	a := app.New()
 	a.Settings().SetTheme(&myTheme{})
@@ -654,9 +669,23 @@ func main() {
 		confirm := dialog.NewInformation(title, message, w)
 		confirm.Show()
 	})
+	logBtn := widget.NewButtonWithIcon("", theme.MailSendIcon(), func() {
+		title := "Save Logs"
+		message := "Save log data to assist with issue reporting. Sensitive data (passwords, file names, etc.) " +
+			"will not be recorded, but you should still review the logs before sharing to ensure you are " +
+			"comfortable with the data being shared."
+		text := widget.NewLabel(message)
+		text.Wrapping = fyne.TextWrapWord
+		dialog.ShowCustomConfirm(title, "Save Logs", "Dismiss", text, func(b bool) {
+			if b {
+				writeLogs(w)
+			}
+		}, w)
+	})
 	info_row := container.New(
 		layout.NewHBoxLayout(),
 		info,
+		logBtn,
 		layout.NewSpacer(),
 	)
 
