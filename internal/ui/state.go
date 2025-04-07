@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"fmt"
 	"strings"
 	"sync"
 
@@ -86,11 +87,11 @@ func (s *State) SetInput(input fyne.URI) error {
 			defer reader.Close()
 		}
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to open file: %w", err)
 		}
 		settings, err := encryption.GetEncryptionSettings(reader)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to get encryption settings: %w", err)
 		}
 		s.Comments = settings.Comments
 		s.ReedSolomon = settings.ReedSolomon
