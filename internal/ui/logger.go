@@ -33,15 +33,12 @@ func stateJson(state State) string {
 	keyfilesJson := "[" + strings.Join(keyfiles, ",") + "]"
 	fields := []string{
 		"\"Input\":" + redactedFile(state.Input()),
-		"\"SaveAs\":" + redactedFile(state.Input()),
-		"\"Comments\":" + redactedString(state.Comments),
+		"\"SaveAs\":" + redactedFile(state.SaveAs),
+		"\"Comments\":\"" + redactedString(state.Comments) + "\"",
 		"\"ReedSolomon\":" + strconv.FormatBool(state.ReedSolomon),
 		"\"Deniability\":" + strconv.FormatBool(state.Deniability),
 		"\"Paranoid\":" + strconv.FormatBool(state.Paranoid),
-		"\"OrderedKeyfiles\":\"redacted\"",
 		"\"Keyfiles\":" + keyfilesJson,
-		"\"Password\":" + redactedString(state.Password),
-		"\"ConfirmPassword\":" + redactedString(state.ConfirmPassword),
 	}
 	return "{" + strings.Join(fields, ",") + "}"
 }
@@ -58,11 +55,15 @@ type Logger struct {
 }
 
 func (l *Logger) Log(action string, state State, err error) {
+	errMsg := ""
+	if err != nil {
+		errMsg = err.Error()
+	}
 	line := logLine{
-		time:   time.Now().Format("15:04:05.1234"),
+		time:   time.Now().Format("15:04:05.000"),
 		action: action,
 		state:  stateJson(state),
-		err:    err.Error(),
+		err:    errMsg,
 	}
 	l.lines = append(l.lines, line)
 }
