@@ -68,7 +68,7 @@ func (l *Logger) Log(action string, state State, err error) {
 }
 
 func (l *Logger) CsvString() string {
-	logLines := []string{"Time,Action,State,Error"}
+	logLines := []string{"Time,Action,State,Error," + PicoGoVersion}
 	for _, line := range l.lines {
 		fields := []string{
 			"\"" + line.time + "\"",
