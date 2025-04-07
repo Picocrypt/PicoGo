@@ -21,9 +21,8 @@ import (
 	"fyne.io/fyne/v2/widget"
 
 	"github.com/picocrypt/picogo/internal/encryption"
+	"github.com/picocrypt/picogo/internal/ui"
 )
-
-var version = "0.1.1"
 
 type myTheme struct{}
 
@@ -662,7 +661,7 @@ func main() {
 	updates := UpdateMethods{}
 
 	info := widget.NewButtonWithIcon("", theme.InfoIcon(), func() {
-		title := "PicoGo v" + version
+		title := "PicoGo " + ui.PicoGoVersion
 		message := "This app is not sponsored or supported by Picocrypt. It is a 3rd party " +
 			"app written to make Picocrypt files more easily accessible on mobile devices.\n\n" +
 			"If you have any problems, please report them so that they can be fixed."
