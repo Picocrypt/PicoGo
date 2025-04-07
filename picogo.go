@@ -637,9 +637,8 @@ func developmentWarning(win fyne.Window) {
 	}
 }
 
-func writeLogs(window fyne.Window) {
-	msg := "Test log"
-	dialog.NewFileSave(func(writer fyne.URIWriteCloser, err error) {
+func writeLogs(logger ui.Logger, window fyne.Window) {
+	d := dialog.NewFileSave(func(writer fyne.URIWriteCloser, err error) {
 		if writer != nil {
 			defer writer.Close()
 		}
@@ -647,15 +646,18 @@ func writeLogs(window fyne.Window) {
 			return
 		}
 		if writer != nil {
-			writer.Write([]byte(msg))
+			writer.Write([]byte(logger.CsvString()))
 		}
-	}, window).Show()
+	}, window)
+	d.SetFileName("picogo-logs.csv")
+	d.Show()
 }
 
 func main() {
 	a := app.New()
 	a.Settings().SetTheme(&myTheme{})
 	w := a.NewWindow("PicoGo")
+	logger := ui.Logger{}
 
 	state := State{}
 	updates := UpdateMethods{}
@@ -677,7 +679,7 @@ func main() {
 		text.Wrapping = fyne.TextWrapWord
 		dialog.ShowCustomConfirm(title, "Save Logs", "Dismiss", text, func(b bool) {
 			if b {
-				writeLogs(w)
+				writeLogs(logger, w)
 			}
 		}, w)
 	})
