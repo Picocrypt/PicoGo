@@ -3,6 +3,7 @@ package ui
 import (
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -52,6 +53,7 @@ type logLine struct {
 
 type Logger struct {
 	lines []logLine
+	mutex sync.Mutex
 }
 
 func (l *Logger) Log(action string, state State, err error) {
@@ -65,6 +67,8 @@ func (l *Logger) Log(action string, state State, err error) {
 		state:  stateJson(state),
 		err:    errMsg,
 	}
+	l.mutex.Lock()
+	defer l.mutex.Unlock()
 	l.lines = append(l.lines, line)
 }
 
