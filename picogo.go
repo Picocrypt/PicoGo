@@ -620,7 +620,7 @@ func developmentWarning(win fyne.Window) {
 	}
 }
 
-func writeLogs(logger ui.Logger, window fyne.Window) {
+func writeLogs(logger *ui.Logger, window fyne.Window) {
 	d := dialog.NewFileSave(func(writer fyne.URIWriteCloser, err error) {
 		if writer != nil {
 			defer writer.Close()
@@ -665,7 +665,7 @@ func main() {
 		text.Wrapping = fyne.TextWrapWord
 		dialog.ShowCustomConfirm(title, "Save Logs", "Dismiss", text, func(b bool) {
 			if b {
-				writeLogs(logger, w)
+				writeLogs(&logger, w)
 			}
 		}, w)
 	})
