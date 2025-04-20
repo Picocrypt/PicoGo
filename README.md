@@ -1,5 +1,8 @@
 # PicoGo
 
+
+![coverage](https://raw.githubusercontent.com/Picocrypt/PicoGo/badges/.badges/main/coverage.svg)
+
 A experimental mobile app (Android only for now) for file encryption compatible with [Picocrypt](https://www.github.com/Picocrypt/Picocrypt).
 
 This app is based on Picocrypt's encryption scheme but is not developed or endorsed by Picocrypt's author/maintainer. It is a standalone work intended to make Picocrypt files easier to access on Android devices. All credit for the original encryption scheme and corresponding code belongs to [Picocrypt](https://www.github.com/Picocrypt/Picocrypt) and its author [HACKERALERT](https://github.com/HACKERALERT).
