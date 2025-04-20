@@ -20,7 +20,6 @@ func TestVersion(t *testing.T) {
 		t.Fatal(err)
 	}
 	if !bytes.Equal(version, []byte(ui.PicoGoVersion)) {
-		t.Fatal(version, "does not match", ui.PicoGoVersion)
+		t.Fatal(version, "does not match", []byte(ui.PicoGoVersion), "for version", ui.PicoGoVersion)
 	}
 }
-	
