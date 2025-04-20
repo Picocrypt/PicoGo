@@ -141,6 +141,12 @@ func (r *rsDecodeStream) stream(p []byte) ([]byte, error) {
 }
 
 func (r *rsDecodeStream) flush() ([]byte, error) {
+	if len(r.buff) == 0 {
+		return nil, nil
+	}
+	if len(r.buff) != encodedSize {
+		return nil, ErrBodyCorrupted
+	}
 	res := make([]byte, chunkSize)
 	damaged, _, err := rsDecode(res, r.buff, r.skip)
 	r.damageTracker.damage = r.damageTracker.damage || damaged
