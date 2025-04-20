@@ -14,7 +14,7 @@ import (
 func getTestKeyfiles(name string) []io.Reader {
 	kf := []io.Reader{}
 	usesKf1 := strings.Contains(name, "kf1")
-	usesKf2 := strings.Contains(name, "kf2")
+	usesKf2 := strings.Contains(name, "kf12")
 	for i, used := range []bool{usesKf1, usesKf2} {
 		if !used {
 			continue
