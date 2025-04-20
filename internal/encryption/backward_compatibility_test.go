@@ -53,39 +53,38 @@ func getBaseData(name string) []byte {
 	return buf.Bytes()
 }
 
-func TestV1_47(t *testing.T) {
-	// Decrypt all files in picrocrypt/samples/v1.47
-
-	// List files in directory
-	files, err := os.ReadDir("picocrypt_samples/v1.47")
-	if err != nil {
-		t.Fatal("reading directory: %w", err)
-	}
-	// Loop through files
-	for _, file := range files {
-		if !(strings.HasSuffix(file.Name(), ".pcv")) {
-			continue
+func TestPicocryptFiles(t *testing.T) {
+	testVersions := []string{"v1.47", "v1.48"}
+	for _, version := range testVersions {
+		files, err := os.ReadDir("picocrypt_samples/" + version)
+		if err != nil {
+			t.Fatal("reading directory: %w", err)
 		}
-		t.Run(file.Name(), func(t *testing.T) {
-			r, err := os.Open("picocrypt_samples/v1.47/" + file.Name())
-			if err != nil {
-				t.Fatal("opening encrypted file: %w", err)
+		for _, file := range files {
+			if !(strings.HasSuffix(file.Name(), ".pcv")) {
+				continue
 			}
-			defer r.Close()
-			w := bytes.NewBuffer([]byte{})
-			kf := getTestKeyfiles(file.Name())
-			damaged, err := Decrypt("password", kf, r, w, false, nil)
-			if damaged {
-				t.Fatal("damaged data")
-			}
-			if err != nil {
-				t.Fatal("decrypting:", err)
-			}
-			result := w.Bytes()
-			expected := getBaseData(file.Name())
-			if !bytes.Equal(result, expected) {
-				t.Fatal("decrypted data does not match")
-			}
-		})
+			t.Run(version+":"+file.Name(), func(t *testing.T) {
+				r, err := os.Open("picocrypt_samples/" + version + "/" + file.Name())
+				if err != nil {
+					t.Fatal("opening encrypted file: %w", err)
+				}
+				defer r.Close()
+				w := bytes.NewBuffer([]byte{})
+				kf := getTestKeyfiles(file.Name())
+				damaged, err := Decrypt("password", kf, r, w, false, nil)
+				if damaged {
+					t.Fatal("damaged data")
+				}
+				if err != nil {
+					t.Fatal("decrypting:", err)
+				}
+				result := w.Bytes()
+				expected := getBaseData(file.Name())
+				if !bytes.Equal(result, expected) {
+					t.Fatal("decrypted data does not match")
+				}
+			})
+		}
 	}
 }
