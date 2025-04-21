@@ -28,51 +28,68 @@ type args struct {
 	decryptOnly bool
 }
 
-func parseArgs() (args, error) {
+var (
+	reedSolomonFlag *bool
+	paranoidFlag    *bool
+	deniabilityFlag *bool
+	keyfilesStrFlag *string
+	keepFlag        *bool
+	orderedFlag     *bool
+	passfromFlag    *string
+	commentsFlag    *string
+	overwriteFlag   *bool
+	encryptOnlyFlag *bool
+	decryptOnlyFlag *bool
+)
+
+func init() {
 	flag.Usage = func() {
 		fmt.Fprintf(flag.CommandLine.Output(), "Usage: %s [options] file1 [file2 ...]\n", os.Args[0])
 		fmt.Fprintf(flag.CommandLine.Output(), "\nOptions:\n")
 		flag.PrintDefaults()
 	}
-	reedSolomon := flag.Bool("rs", false, "(encryption) encode with Reed-Solomon bytes")
-	paranoid := flag.Bool("paranoid", false, "(encryption) use paranoid mode")
-	deniability := flag.Bool("deniability", false, "(encryption) use deniability mode")
-	keyfilesStr := flag.String("keyfiles", "", "list of keyfiles to use. Separate list with commas (ex: keyfile1,keyfile2,keyfile3)")
-	keep := flag.Bool("keep", false, "(decryption) keep output even if corrupted. If not set, the output file will be deleted.")
-	ordered := flag.Bool("ordered", false, "(encryption) require keyfiles in given order")
-	passfrom := flag.String("passfrom", "tty", "password source. Options can be found in getpass documentation (github.com/jschauma/getpass)")
-	comments := flag.String("comments", "", "(encryption) comments to save with the file. THESE ARE NOT ENCRYPTED. Wrap in quotes.")
-	overwrite := flag.Bool("overwrite", false, "overwrite existing files")
-	encryptOnly := flag.Bool("encrypt-only", false, "only handle files that require encryption (only processes non-.pcv files)")
-	decryptOnly := flag.Bool("decrypt-only", false, "only handle files that require decryption (only processes .pcv files)")
+	reedSolomonFlag = flag.Bool("rs", false, "(encryption) encode with Reed-Solomon bytes")
+	paranoidFlag = flag.Bool("paranoid", false, "(encryption) use paranoid mode")
+	deniabilityFlag = flag.Bool("deniability", false, "(encryption) use deniability mode")
+	keyfilesStrFlag = flag.String("keyfiles", "", "list of keyfiles to use. Separate list with commas (ex: keyfile1,keyfile2,keyfile3)")
+	keepFlag = flag.Bool("keep", false, "(decryption) keep output even if corrupted. If not set, the output file will be deleted.")
+	orderedFlag = flag.Bool("ordered", false, "(encryption) require keyfiles in given order")
+	passfromFlag = flag.String("passfrom", "tty", "password source. Options can be found in getpass documentation (github.com/jschauma/getpass)")
+	commentsFlag = flag.String("comments", "", "(encryption) comments to save with the file. THESE ARE NOT ENCRYPTED. Wrap in quotes.")
+	overwriteFlag = flag.Bool("overwrite", false, "overwrite existing files")
+	encryptOnlyFlag = flag.Bool("encrypt-only", false, "only handle files that require encryption (only processes non-.pcv files)")
+	decryptOnlyFlag = flag.Bool("decrypt-only", false, "only handle files that require decryption (only processes .pcv files)")
 
+}
+
+func parseArgs() (args, error) {
 	flag.Parse()
 	if flag.NArg() == 0 {
 		return args{}, errors.New("no file specified")
 	}
 
-	password, err := getpass.Getpass(*passfrom)
+	password, err := getpass.Getpass(*passfromFlag)
 	if err != nil {
-		return args{}, fmt.Errorf("reading password from %s: %w", *passfrom, err)
+		return args{}, fmt.Errorf("reading password from %s: %w", *passfromFlag, err)
 	}
 	keyfiles := []string{}
-	if len(*keyfilesStr) > 0 {
-		keyfiles = strings.Split(*keyfilesStr, ",")
+	if len(*keyfilesStrFlag) > 0 {
+		keyfiles = strings.Split(*keyfilesStrFlag, ",")
 	}
 
 	return args{
-		reedSolomon: *reedSolomon,
-		paranoid:    *paranoid,
-		deniability: *deniability,
+		reedSolomon: *reedSolomonFlag,
+		paranoid:    *paranoidFlag,
+		deniability: *deniabilityFlag,
 		inFiles:     flag.Args(),
 		keyfiles:    keyfiles,
-		keep:        *keep,
-		ordered:     *ordered,
+		keep:        *keepFlag,
+		ordered:     *orderedFlag,
 		password:    password,
-		comments:    *comments,
-		overwrite:   *overwrite,
-		encryptOnly: *encryptOnly,
-		decryptOnly: *decryptOnly,
+		comments:    *commentsFlag,
+		overwrite:   *overwriteFlag,
+		encryptOnly: *encryptOnlyFlag,
+		decryptOnly: *decryptOnlyFlag,
 	}, nil
 }
 
