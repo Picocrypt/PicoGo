@@ -121,7 +121,18 @@ func EncryptHeadless(
 	if err != nil {
 		return nil, fmt.Errorf("generating seeds: %w", err)
 	}
+	return encryptWithSeeds(in, password, keyfiles, settings, out, update, seeds)
+}
 
+func encryptWithSeeds(
+	in io.Reader,
+	password string,
+	keyfiles []io.Reader,
+	settings Settings,
+	out io.Writer,
+	update chan Update,
+	seeds seeds,
+) ([]byte, error) {
 	encryptionStream, err := makeEncryptStream(settings, seeds, password, keyfiles)
 	if err != nil {
 		return nil, fmt.Errorf("making encryption stream: %w", err)

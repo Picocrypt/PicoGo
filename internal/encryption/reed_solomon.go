@@ -101,6 +101,9 @@ func (r *rsEncodeStream) stream(p []byte) ([]byte, error) {
 }
 
 func (r *rsEncodeStream) flush() ([]byte, error) {
+	if len(r.buff) == 0 {
+		return nil, nil
+	}
 	padding := make([]byte, chunkSize-len(r.buff))
 	for i := range padding {
 		padding[i] = byte(chunkSize - len(r.buff))
@@ -141,6 +144,12 @@ func (r *rsDecodeStream) stream(p []byte) ([]byte, error) {
 }
 
 func (r *rsDecodeStream) flush() ([]byte, error) {
+	if len(r.buff) == 0 {
+		return nil, nil
+	}
+	if len(r.buff) != encodedSize {
+		return nil, ErrBodyCorrupted
+	}
 	res := make([]byte, chunkSize)
 	damaged, _, err := rsDecode(res, r.buff, r.skip)
 	r.damageTracker.damage = r.damageTracker.damage || damaged

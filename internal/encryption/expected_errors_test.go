@@ -39,7 +39,7 @@ func TestHeaderCorrupted(t *testing.T) {
 
 func TestIncorrectPassword(t *testing.T) {
 	argonKey = argon2IDKey
-	reader, err := os.Open("examples/test001.txt.pcv")
+	reader, err := os.Open("picocrypt_samples/v1.48/base1000.pcv")
 	if err != nil {
 		t.Fatal("opening file:", err)
 	}
@@ -52,29 +52,29 @@ func TestIncorrectPassword(t *testing.T) {
 
 func TestIncorrectKeyfiles(t *testing.T) {
 	argonKey = argon2IDKey
-	reader, err := os.Open("examples/test008.pcv")
+	reader, err := os.Open("picocrypt_samples/v1.48/base0_kf12o.pcv")
 	if err != nil {
 		t.Fatal("opening file:", err)
 	}
 	wrongKeyfileData := make([]byte, 100)
 	rand.Read(wrongKeyfileData)
 	defer reader.Close()
-	_, err = Decrypt(",./<>?", []io.Reader{bytes.NewBuffer(wrongKeyfileData)}, reader, bytes.NewBuffer([]byte{}), false, nil)
+	_, err = Decrypt("password", []io.Reader{bytes.NewBuffer(wrongKeyfileData)}, reader, bytes.NewBuffer([]byte{}), false, nil)
 	if !errors.Is(err, ErrIncorrectOrMisorderedKeyfiles) {
-		t.Fatal("expected wrong password, got", err)
+		t.Fatal("expected wrong keyfieles, got", err)
 	}
 }
 
 func TestKeyfilesRequired(t *testing.T) {
 	argonKey = argon2IDKey
-	reader, err := os.Open("examples/test008.pcv")
+	reader, err := os.Open("picocrypt_samples/v1.48/base0_kf12o.pcv")
 	if err != nil {
 		t.Fatal("opening file:", err)
 	}
 	defer reader.Close()
-	_, err = Decrypt(",./<>?", []io.Reader{}, reader, bytes.NewBuffer([]byte{}), false, nil)
+	_, err = Decrypt("password", []io.Reader{}, reader, bytes.NewBuffer([]byte{}), false, nil)
 	if !errors.Is(err, ErrKeyfilesRequired) {
-		t.Fatal("expected wrong password, got", err)
+		t.Fatal("expected required keyfiles, got", err)
 	}
 }
 
@@ -103,12 +103,12 @@ func TestDuplicateKeyfiles(t *testing.T) {
 
 func TestKeyfilesNotRequired(t *testing.T) {
 	argonKey = argon2IDKey
-	reader, err := os.Open("examples/test002.pcv")
+	reader, err := os.Open("picocrypt_samples/v1.48/base1000.pcv")
 	if err != nil {
 		t.Fatal("opening file:", err)
 	}
 	defer reader.Close()
-	_, err = Decrypt("qwerty", []io.Reader{bytes.NewBuffer([]byte{})}, reader, bytes.NewBuffer([]byte{}), false, nil)
+	_, err = Decrypt("password", []io.Reader{bytes.NewBuffer([]byte{})}, reader, bytes.NewBuffer([]byte{}), false, nil)
 	if !errors.Is(err, ErrKeyfilesNotRequired) {
 		t.Fatal("expected ErrKeyfilesNotRequired, got", err)
 	}
@@ -116,12 +116,20 @@ func TestKeyfilesNotRequired(t *testing.T) {
 
 func TestCorrupted(t *testing.T) {
 	argonKey = argon2IDKey
-	reader, err := os.Open("examples/corrupted.pcv")
+	reader, err := os.Open("picocrypt_samples/v1.48/base1000.pcv")
 	if err != nil {
 		t.Fatal("opening file:", err)
 	}
 	defer reader.Close()
-	_, err = Decrypt("qwerty", []io.Reader{}, reader, bytes.NewBuffer([]byte{}), false, nil)
+	r := bytes.NewBuffer([]byte{})
+	_, err = io.Copy(r, reader)
+	if err != nil {
+		t.Fatal("reading file:", err)
+	}
+	rawBytes := r.Bytes()
+	copy(rawBytes[:], []byte("corrupted"))
+	corruptedReader := bytes.NewBuffer(rawBytes)
+	_, err = Decrypt("qwerty", []io.Reader{}, corruptedReader, bytes.NewBuffer([]byte{}), false, nil)
 	if !errors.Is(err, ErrHeaderCorrupted) {
 		t.Fatal("expected ErrHeaderCorrupted, got", err)
 	}
@@ -129,7 +137,7 @@ func TestCorrupted(t *testing.T) {
 
 func TestDamagedButRecoverable(t *testing.T) {
 	argonKey = argon2IDKey
-	reader, err := os.Open("examples/test006.pcv")
+	reader, err := os.Open("picocrypt_samples/v1.48/base1000_r.pcv")
 	if err != nil {
 		t.Fatal("opening file:", err)
 	}
@@ -142,7 +150,7 @@ func TestDamagedButRecoverable(t *testing.T) {
 
 	encryptedData[1000] = byte(int(encryptedData[1000]) + 1)
 
-	damaged, err := Decrypt("\\][|}{", []io.Reader{}, bytes.NewBuffer(encryptedData), bytes.NewBuffer([]byte{}), false, nil)
+	damaged, err := Decrypt("password", []io.Reader{}, bytes.NewBuffer(encryptedData), bytes.NewBuffer([]byte{}), false, nil)
 	if err != nil {
 		t.Fatal("expected no error, got", err)
 	}
