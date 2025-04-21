@@ -5,7 +5,7 @@ import (
 	"io"
 )
 
-var picocryptVersion = "v1.43"
+var picocryptVersion = "v1.48"
 
 type sizeStream struct {
 	header  *header
