@@ -311,13 +311,32 @@ func compareShas(
 	}
 }
 
+func isLatestVersion(path string) bool {
+	r, err := os.Open(path)
+	if err != nil {
+		log.Fatal("opening file: %w", err)
+	}
+	defer r.Close()
+	expected := compatibilityVersions[len(compatibilityVersions)-1]
+	buf := make([]byte, len(expected))
+	_, err = io.ReadFull(r, buf)
+	if err != nil {
+		log.Fatal("reading file: %w", err)
+	}
+	return string(buf) == expected
+}
+
 func TestSmallFileSha(t *testing.T) {
 	// Test 1K file of zeros, for debugging
+	path := "picocrypt_samples/headers/zerofile1024.header"
+	if !isLatestVersion(path) {
+		t.Fatal("header file is not latest version")
+	}
 	compareShas(
 		t,
 		"password",
-		"examples/smallfile.header",
-		"b501219c59855b8ba2e00fe2cc9ec9fd0b189f16a750f4593fd79964d2bed427",
+		path,
+		"bb8a1f6be9cfcd39cb8eedd49583ddfd7153158b8ffce541e256deb400160a98",
 		"5f70bf18a086007016e948b04aed3b82103a36bea41755b6cddfaf10ace3c6ef",
 		(1 << 10), // 1K
 	)
@@ -325,11 +344,15 @@ func TestSmallFileSha(t *testing.T) {
 
 func TestLargeFileSha(t *testing.T) {
 	// Test 65GB file of zeros
+	path := "picocrypt_samples/headers/zerofile65498251264.header"
+	if !isLatestVersion(path) {
+		t.Fatal("header file is not latest version")
+	}
 	compareShas(
 		t,
 		"password",
-		"examples/largefile.header",
-		"b65d470bfb6c9e07f09811244597f88177ba4cc68ae101002d5c5c8a6cf08500",
+		path,
+		"451dd75500b9502e7c82fa679e698443337d33c52ddb84d5a14c3ff95032dc50",
 		"f3f0d678fa138e4581ed15ec63f8cb965e5d7b722db7d5fc4877e763163d399c",
 		65498251264,
 	)
