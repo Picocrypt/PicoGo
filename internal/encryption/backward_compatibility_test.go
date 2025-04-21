@@ -182,18 +182,6 @@ func TestEncryptedFilesMatchPicocrypt(t *testing.T) {
 			expected := buf.Bytes()
 
 			if !bytes.Equal(result, expected) {
-				log.Println("encrypted data does not match")
-				log.Println("len expected:", len(expected))
-				log.Println("len result:", len(result))
-				// find where they first differ
-				for i := 0; i < len(expected) && i < len(result); i++ {
-					if expected[i] != result[i] {
-						log.Println("first difference at", i)
-						log.Println("expected:", expected[i])
-						log.Println("result:", result[i])
-						break
-					}
-				}
 				t.Fatal("encrypted data does not match")
 			}
 		})
