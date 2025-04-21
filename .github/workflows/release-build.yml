@@ -1,0 +1,66 @@
+name: release-build
+
+permissions:
+  contents: write
+
+on:
+  push:
+    tags: 
+      - 'v[0-9].[0-9]+.[0-9]+'
+    
+
+jobs:
+  release-build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '>=1.24'
+        check-latest: true
+        cache: false
+
+    - name: Install packages
+      run: |
+        sudo apt update
+        sudo apt upgrade -y
+        sudo apt autoremove -y
+        sudo apt install -y gcc libgl1-mesa-dev libglu1-mesa xorg-dev libgtk-3-dev libxkbcommon-dev
+
+    - name: Install dependencies
+      run: |
+        go mod download
+        go install -v github.com/fyne-io/fyne-cross@latest
+
+    - name: Build Android
+      run: |
+        fyne-cross android -arch=arm64
+      env:
+        CGO_ENABLED: 1
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: PicoGo.apk
+        path: |
+          fyne-cross/dist/android-arm64/PicoGo.apk
+        if-no-files-found: error
+        compression-level: 9
+
+    - name: Generate checksums
+      run: |
+        echo "CHECKSUM_PICOGO_APK=$(sha256sum fyne-cross/dist-android-arm64/PicoGo.apk | cut -d ' ' -f1)" >> $GITHUB_ENV
+
+    - name: Release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: |
+          fyne-cross/dist/android-arm64/PicoGo.apk
+        tag_name: ${{ env.VERSION }}
+        make_latest: true
+        append_body: true
+        body: |
+          **PicoGo:**
+          `sha256(PicoGo.apk): ${{ env.CHECKSUM_PICOGO_APK }}`
