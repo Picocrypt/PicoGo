@@ -32,11 +32,12 @@ type refs struct {
 }
 
 type header struct {
-	settings Settings
-	seeds    seeds
-	refs     refs
-	usesKf   bool
-	fileSize int64
+	settings    Settings
+	seeds       seeds
+	refs        refs
+	usesKf      bool
+	fileSize    int64
+	nearMiBFlag bool // set when the original data is within 1 chunk of a MiB
 }
 
 func (header *header) bytes(password string) ([]byte, error) {

@@ -120,6 +120,7 @@ type rsDecodeStream struct {
 	buff          []byte
 	skip          bool
 	damageTracker *damageTracker
+	header        *header
 	chunksDecoded int64
 }
 
@@ -140,8 +141,8 @@ func (r *rsDecodeStream) stream(p []byte) ([]byte, error) {
 			return nil, err
 		}
 	}
-	r.buff = r.buff[nChunks*encodedSize:]
 	r.chunksDecoded += int64(nChunks)
+	r.buff = r.buff[nChunks*encodedSize:]
 	return rsData, nil
 }
 
@@ -158,9 +159,10 @@ func (r *rsDecodeStream) flush() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	// The last chunk is padded unless there have been exactly N Mb of data encoded.
-	padded := (r.chunksDecoded % int64((2<<20)/encodedSize)) != 0
-	if padded {
+	// The last chunk is padded unless there is an exact multiple of MiB of decoded data
+	// and the nearMiBFlag is not set
+	exactMiB := (r.chunksDecoded+1)%((1<<20)/chunkSize) == 0
+	if exactMiB && !r.header.nearMiBFlag {
 		return res, nil
 	}
 	keep := chunkSize - int(res[chunkSize-1])
@@ -174,6 +176,6 @@ func makeRSEncodeStream() *rsEncodeStream {
 	return &rsEncodeStream{}
 }
 
-func makeRSDecodeStream(skip bool, damageTracker *damageTracker) *rsDecodeStream {
-	return &rsDecodeStream{skip: skip, damageTracker: damageTracker}
+func makeRSDecodeStream(skip bool, header *header, damageTracker *damageTracker) *rsDecodeStream {
+	return &rsDecodeStream{skip: skip, damageTracker: damageTracker, header: header}
 }
