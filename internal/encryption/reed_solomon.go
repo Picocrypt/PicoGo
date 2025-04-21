@@ -120,6 +120,7 @@ type rsDecodeStream struct {
 	buff          []byte
 	skip          bool
 	damageTracker *damageTracker
+	chunksDecoded int64
 }
 
 func (r *rsDecodeStream) stream(p []byte) ([]byte, error) {
@@ -140,6 +141,7 @@ func (r *rsDecodeStream) stream(p []byte) ([]byte, error) {
 		}
 	}
 	r.buff = r.buff[nChunks*encodedSize:]
+	r.chunksDecoded += int64(nChunks)
 	return rsData, nil
 }
 
@@ -155,6 +157,11 @@ func (r *rsDecodeStream) flush() ([]byte, error) {
 	r.damageTracker.damage = r.damageTracker.damage || damaged
 	if err != nil {
 		return nil, err
+	}
+	// The last chunk is padded unless there have been exactly N Mb of data encoded.
+	padded := (r.chunksDecoded % int64((2<<20)/encodedSize)) != 0
+	if padded {
+		return res, nil
 	}
 	keep := chunkSize - int(res[chunkSize-1])
 	if (keep >= 0) && (keep < chunkSize) {
