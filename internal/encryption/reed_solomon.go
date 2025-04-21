@@ -83,7 +83,9 @@ func rsDecode(dst, src []byte, skip bool) (bool, bool, error) {
 }
 
 type rsEncodeStream struct {
-	buff []byte
+	buff          []byte
+	chunksEncoded int64
+	header        *header
 }
 
 func (r *rsEncodeStream) stream(p []byte) ([]byte, error) {
@@ -97,11 +99,14 @@ func (r *rsEncodeStream) stream(p []byte) ([]byte, error) {
 		}
 	}
 	r.buff = r.buff[nChunks*chunkSize:]
+	r.chunksEncoded += int64(nChunks)
 	return rsData, nil
 }
 
 func (r *rsEncodeStream) flush() ([]byte, error) {
-	if len(r.buff) == 0 {
+	// Skip if exactly the right number of chunks encoded and there is no buffer data
+	exactMiB := r.chunksEncoded%((1<<20)/chunkSize) == 0
+	if exactMiB && len(r.buff) == 0 {
 		return nil, nil
 	}
 	padding := make([]byte, chunkSize-len(r.buff))
@@ -172,8 +177,8 @@ func (r *rsDecodeStream) flush() ([]byte, error) {
 	return nil, ErrBodyCorrupted
 }
 
-func makeRSEncodeStream() *rsEncodeStream {
-	return &rsEncodeStream{}
+func makeRSEncodeStream(header *header) *rsEncodeStream {
+	return &rsEncodeStream{header: header}
 }
 
 func makeRSDecodeStream(skip bool, header *header, damageTracker *damageTracker) *rsDecodeStream {

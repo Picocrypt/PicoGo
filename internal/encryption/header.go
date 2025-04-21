@@ -36,7 +36,6 @@ type header struct {
 	seeds       seeds
 	refs        refs
 	usesKf      bool
-	fileSize    int64
 	nearMiBFlag bool // set when the original data is within 1 chunk of a MiB
 }
 
@@ -51,7 +50,7 @@ func (header *header) bytes(password string) ([]byte, error) {
 		header.usesKf,
 		header.settings.OrderedKf,
 		header.settings.ReedSolomon,
-		header.fileSize%(1<<20) > (1<<20)-chunkSize,
+		header.nearMiBFlag,
 	}
 	flagBytes := make([]byte, len(flags))
 	for i, f := range flags {

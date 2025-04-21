@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/rand"
 	"io"
+	"log"
 	mrand "math/rand/v2"
 	"testing"
 
@@ -101,12 +102,13 @@ func testConsistency(settings Settings, size int, numKeyfiles int, t *testing.T)
 	if err != nil {
 		t.Fatal(err)
 	}
+	headlessLen := headless.Len()
 	headed := bytes.NewBuffer([]byte{})
 	err = PrependHeader(headless, headed, header)
 	if err != nil {
 		t.Fatal(err)
 	}
-
+	encryptedLen := headed.Len()
 	encrypted, err := io.ReadAll(headed)
 	if err != nil {
 		t.Fatal(err)
@@ -119,6 +121,11 @@ func testConsistency(settings Settings, size int, numKeyfiles int, t *testing.T)
 		t.Fatal(err)
 	}
 	if !bytes.Equal(result, original) {
+		log.Println("original length:", len(original))
+		log.Println("headless length:", headlessLen)
+		log.Println("headed length:", encryptedLen)
+		log.Println("decrypted length:", len(result))
+		log.Println("missing bytes:", len(original)-len(result))
 		t.Fatal("decryption does not match")
 	}
 
