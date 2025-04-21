@@ -3,6 +3,8 @@ package main
 import (
 	"os"
 	"testing"
+
+	"github.com/picocrypt/picogo/internal/encryption"
 )
 
 func argsMatch(a, b args) bool {
@@ -99,5 +101,98 @@ func TestParseArgs(t *testing.T) {
 			}
 		})
 	}
+}
 
+func fileExists(filename string) bool {
+	_, err := os.Stat(filename)
+	return !os.IsNotExist(err)
+}
+
+func deleteFile(filename string) {
+	err := os.Remove(filename)
+	if err != nil {
+		panic(err)
+	}
+}
+
+func TestDecrypt(t *testing.T) {
+	encryptedFilename := "../../internal/encryption/picocrypt_samples/v1.48/base1000.pcv"
+	decryptedFilename := "../../internal/encryption/picocrypt_samples/v1.48/base1000"
+	err := decrypt(
+		encryptedFilename,
+		[]string{},
+		"password",
+		[2]int{0, 2},
+		false,
+		false,
+	)
+	if err != nil {
+		t.Errorf("decrypt() error = %v", err)
+	}
+	if !fileExists(decryptedFilename) {
+		t.Errorf("decrypt() did not create file %s", decryptedFilename)
+	}
+	deleteFile(decryptedFilename)
+
+	encryptedFilename = "../../internal/encryption/picocrypt_samples/v1.48/base1000_kf12.pcv"
+	decryptedFilename = "../../internal/encryption/picocrypt_samples/v1.48/base1000_kf12"
+	err = decrypt(
+		encryptedFilename,
+		[]string{
+			"../../internal/encryption/picocrypt_samples/keyfiles/keyfile1",
+			"../../internal/encryption/picocrypt_samples/keyfiles/keyfile2",
+		},
+		"password",
+		[2]int{1, 2},
+		false,
+		true,
+	)
+	if err != nil {
+		t.Errorf("decrypt() error = %v", err)
+	}
+	if !fileExists(decryptedFilename) {
+		t.Errorf("decrypt() did not create file %s", decryptedFilename)
+	}
+	deleteFile(decryptedFilename)
+}
+
+func TestEncrypt(t *testing.T) {
+	encryptedFilename := "../../internal/encryption/picocrypt_samples/basefiles/base1000.pcv"
+	decryptedFilename := "../../internal/encryption/picocrypt_samples/basefiles/base1000"
+	err := encrypt(
+		decryptedFilename,
+		[]string{},
+		encryption.Settings{},
+		"password",
+		[2]int{0, 2},
+		false,
+	)
+	if err != nil {
+		t.Errorf("encrypt() error = %v", err)
+	}
+	if !fileExists(encryptedFilename) {
+		t.Errorf("encrypt() did not create file %s", encryptedFilename)
+	}
+	deleteFile(encryptedFilename)
+
+	encryptedFilename = "../../internal/encryption/picocrypt_samples/basefiles/base1000.pcv"
+	decryptedFilename = "../../internal/encryption/picocrypt_samples/basefiles/base1000"
+	err = encrypt(
+		decryptedFilename,
+		[]string{
+			"../../internal/encryption/picocrypt_samples/keyfiles/keyfile1",
+			"../../internal/encryption/picocrypt_samples/keyfiles/keyfile2",
+		},
+		encryption.Settings{},
+		"password",
+		[2]int{1, 2},
+		false,
+	)
+	if err != nil {
+		t.Errorf("encrypt() error = %v", err)
+	}
+	if !fileExists(encryptedFilename) {
+		t.Errorf("encrypt() did not create file %s", encryptedFilename)
+	}
+	deleteFile(encryptedFilename)
 }
