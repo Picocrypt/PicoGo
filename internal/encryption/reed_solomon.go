@@ -83,7 +83,9 @@ func rsDecode(dst, src []byte, skip bool) (bool, bool, error) {
 }
 
 type rsEncodeStream struct {
-	buff []byte
+	buff          []byte
+	chunksEncoded int64
+	header        *header
 }
 
 func (r *rsEncodeStream) stream(p []byte) ([]byte, error) {
@@ -97,11 +99,14 @@ func (r *rsEncodeStream) stream(p []byte) ([]byte, error) {
 		}
 	}
 	r.buff = r.buff[nChunks*chunkSize:]
+	r.chunksEncoded += int64(nChunks)
 	return rsData, nil
 }
 
 func (r *rsEncodeStream) flush() ([]byte, error) {
-	if len(r.buff) == 0 {
+	// Skip if exactly the right number of chunks encoded and there is no buffer data
+	exactMiB := r.chunksEncoded%((1<<20)/chunkSize) == 0
+	if exactMiB && len(r.buff) == 0 {
 		return nil, nil
 	}
 	padding := make([]byte, chunkSize-len(r.buff))
@@ -120,6 +125,8 @@ type rsDecodeStream struct {
 	buff          []byte
 	skip          bool
 	damageTracker *damageTracker
+	header        *header
+	chunksDecoded int64
 }
 
 func (r *rsDecodeStream) stream(p []byte) ([]byte, error) {
@@ -139,6 +146,7 @@ func (r *rsDecodeStream) stream(p []byte) ([]byte, error) {
 			return nil, err
 		}
 	}
+	r.chunksDecoded += int64(nChunks)
 	r.buff = r.buff[nChunks*encodedSize:]
 	return rsData, nil
 }
@@ -156,6 +164,12 @@ func (r *rsDecodeStream) flush() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	// The last chunk is padded unless there is an exact multiple of MiB of decoded data
+	// and the nearMiBFlag is not set
+	exactMiB := (r.chunksDecoded+1)%((1<<20)/chunkSize) == 0
+	if exactMiB && !r.header.nearMiBFlag {
+		return res, nil
+	}
 	keep := chunkSize - int(res[chunkSize-1])
 	if (keep >= 0) && (keep < chunkSize) {
 		return res[:keep], err
@@ -163,10 +177,10 @@ func (r *rsDecodeStream) flush() ([]byte, error) {
 	return nil, ErrBodyCorrupted
 }
 
-func makeRSEncodeStream() *rsEncodeStream {
-	return &rsEncodeStream{}
+func makeRSEncodeStream(header *header) *rsEncodeStream {
+	return &rsEncodeStream{header: header}
 }
 
-func makeRSDecodeStream(skip bool, damageTracker *damageTracker) *rsDecodeStream {
-	return &rsDecodeStream{skip: skip, damageTracker: damageTracker}
+func makeRSDecodeStream(skip bool, header *header, damageTracker *damageTracker) *rsDecodeStream {
+	return &rsDecodeStream{skip: skip, damageTracker: damageTracker, header: header}
 }

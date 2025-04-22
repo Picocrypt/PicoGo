@@ -18,7 +18,7 @@ func (s *sizeStream) stream(p []byte) ([]byte, error) {
 }
 
 func (s *sizeStream) flush() ([]byte, error) {
-	s.header.fileSize = s.counter
+	s.header.nearMiBFlag = (s.counter % (1 << 20)) > ((1 << 20) - chunkSize)
 	return nil, nil
 }
 
@@ -48,8 +48,8 @@ func makeEncryptStream(settings Settings, seeds seeds, password string, keyfiles
 			keyfileRef: keys.keyfileRef,
 			macTag:     [64]byte{}, // will be filled by mac stream
 		},
-		usesKf:   len(keyfiles) > 0,
-		fileSize: 0, // will be filled by size stream
+		usesKf:      len(keyfiles) > 0,
+		nearMiBFlag: false,
 	}
 
 	streams := []streamerFlusher{}
@@ -70,7 +70,7 @@ func makeEncryptStream(settings Settings, seeds seeds, password string, keyfiles
 	streams = append(streams, &sizeStream)
 
 	if settings.ReedSolomon {
-		streams = append(streams, makeRSEncodeStream())
+		streams = append(streams, makeRSEncodeStream(&header))
 	}
 
 	if settings.Deniability {

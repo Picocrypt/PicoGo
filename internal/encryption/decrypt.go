@@ -162,6 +162,7 @@ func (f *flagStream) stream(p []byte) ([]byte, error) {
 			f.header.usesKf = data[1] == 1
 			f.header.settings.OrderedKf = data[2] == 1
 			f.header.settings.ReedSolomon = data[3] == 1
+			f.header.nearMiBFlag = data[4] == 1
 		}
 	}
 	return p, nil
@@ -398,7 +399,7 @@ func (ds *decryptStream) makeBodyStreams() ([]streamerFlusher, error) {
 	streams := []streamerFlusher{}
 	// TODO: add reed solomon if configured
 	if ds.headerStream.header.settings.ReedSolomon {
-		streams = append(streams, makeRSDecodeStream(false, ds.damageTracker))
+		streams = append(streams, makeRSDecodeStream(false, ds.headerStream.header, ds.damageTracker))
 	}
 	macStream, err := newMacStream(keys, ds.headerStream.header, false)
 	if err != nil {
