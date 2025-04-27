@@ -42,24 +42,29 @@ func MakeInfoBtn(w fyne.Window) *widget.Button {
 	return btn
 }
 
-func writeLogs(logger *Logger, window fyne.Window) {
-	d := dialog.NewFileSave(func(writer fyne.URIWriteCloser, err error) {
+func writeLogsCallback(logger *Logger, window fyne.Window) func(fyne.URIWriteCloser, error) {
+	return func(writer fyne.URIWriteCloser, err error) {
 		if writer != nil {
 			defer writer.Close()
 		}
-		if err != nil {
+		if err != nil { // coverage-ignore
+			logger.Log("Writing logs failed", State{}, err)
 			dialog.ShowError(fmt.Errorf("writing logs: %w", err), window)
 			return
 		}
 		if writer != nil {
 			writer.Write([]byte(logger.CsvString()))
 		}
-	}, window)
+	}
+}
+
+func writeLogs(logger *Logger, window fyne.Window) { // coverage-ignore
+	d := dialog.NewFileSave(writeLogsCallback(logger, window), window)
 	d.SetFileName("picogo-logs.csv")
 	d.Show()
 }
 
-func MakeLogBtn(logger *Logger, w fyne.Window) *widget.Button {
+func MakeLogBtn(logger *Logger, w fyne.Window) *widget.Button { // coverage-ignore
 	btn := widget.NewButtonWithIcon("", theme.MailSendIcon(), func() {
 		title := "Save Logs"
 		message := "Save log data to assist with issue reporting. Sensitive data (passwords, file names, etc.) " +
@@ -81,7 +86,7 @@ func filePickerCallback(state *State, logger *Logger, w fyne.Window) func(fyne.U
 		if reader != nil {
 			defer reader.Close()
 		}
-		if err != nil {
+		if err != nil { // coverage-ignore
 			logger.Log("Choosing file to encrypt/decrypt failed", *state, err)
 			dialog.ShowError(fmt.Errorf("choosing file: %w", err), w)
 			return
@@ -92,13 +97,13 @@ func filePickerCallback(state *State, logger *Logger, w fyne.Window) func(fyne.U
 		}
 		err = state.SetInput(reader.URI())
 		logger.Log("Setting file to encrypt/decrypt", *state, err)
-		if err != nil {
+		if err != nil { // coverage-ignore
 			dialog.ShowError(fmt.Errorf("choosing file: %w", err), w)
 		}
 	}
 }
 
-func MakeFilePicker(state *State, logger *Logger, w fyne.Window) *widget.Button {
+func MakeFilePicker(state *State, logger *Logger, w fyne.Window) *widget.Button { // coverage-ignore
 	picker := widget.NewButtonWithIcon("Choose File", theme.FileIcon(), func() {
 		fd := dialog.NewFileOpen(filePickerCallback(state, logger, w), w)
 		fd.Show()
@@ -134,6 +139,7 @@ func updateComments(entry *widget.Entry, binding binding.ExternalString, state *
 		placeholder := ""
 		if state.IsEncrypting() && state.Deniability {
 			placeholder = "Comments are disabled in deniability mode"
+			state.Comments = ""
 		} else if state.IsEncrypting() {
 			placeholder = "Comments are not encrypted"
 		}
@@ -196,7 +202,7 @@ func keyfileAddCallback(state *State, logger *Logger, window fyne.Window, textUp
 		if reader != nil {
 			defer reader.Close()
 		}
-		if err != nil {
+		if err != nil { // coverage-ignore
 			logger.Log("Adding keyfile failed", *state, err)
 			dialog.ShowError(fmt.Errorf("adding keyfile: %w", err), window)
 			return
