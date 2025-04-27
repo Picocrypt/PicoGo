@@ -1,13 +1,11 @@
 package main
 
 import (
-	"crypto/rand"
 	"errors"
 	"fmt"
 	"image/color"
 	"io"
 	"strconv"
-	"strings"
 	"time"
 
 	"fyne.io/fyne/v2"
@@ -61,20 +59,6 @@ func uriWriteCloser(uri string) (fyne.URIWriteCloser, error) {
 		return nil, err
 	}
 	return storage.Writer(fullUri)
-}
-
-type UpdateMethods struct {
-	funcs []func()
-}
-
-func (u *UpdateMethods) Add(f func()) {
-	u.funcs = append(u.funcs, f)
-}
-
-func (u *UpdateMethods) Update() {
-	for _, f := range u.funcs {
-		f()
-	}
 }
 
 func clearFile(uri fyne.URI) error {
@@ -517,97 +501,6 @@ func border() *canvas.Rectangle {
 	return b
 }
 
-func makeKeyfileBtn(logger *ui.Logger, state *ui.State, window fyne.Window) *widget.Button {
-	btn := widget.NewButtonWithIcon("Keyfile", theme.ContentAddIcon(), func() {
-		text := widget.NewMultiLineEntry()
-		text.Disable()
-		updateText := func() {
-			names := []string{}
-			for _, k := range state.Keyfiles {
-				names = append(names, k.Name())
-			}
-			text.SetText(strings.Join(names, "\n"))
-		}
-		updateText()
-		addBtn := widget.NewButtonWithIcon("Add", theme.ContentAddIcon(), func() {
-			fd := dialog.NewFileOpen(func(reader fyne.URIReadCloser, err error) {
-				if reader != nil {
-					defer reader.Close()
-				}
-				if err != nil {
-					logger.Log("Adding keyfile failed", *state, err)
-					dialog.ShowError(fmt.Errorf("adding keyfile: %w", err), window)
-					return
-				}
-				if reader != nil {
-					state.AddKeyfile(reader.URI())
-					logger.Log("Adding keyfile complete", *state, nil)
-					updateText()
-				} else {
-					logger.Log("Adding keyfile canceled", *state, nil)
-				}
-			}, window)
-			fd.Show()
-		})
-		createBtn := widget.NewButtonWithIcon("Create", theme.ContentAddIcon(), func() {
-			fd := dialog.NewFileSave(func(writer fyne.URIWriteCloser, err error) {
-				if writer != nil {
-					defer writer.Close()
-				}
-				if err != nil {
-					logger.Log("Creating keyfile failed", *state, err)
-					dialog.ShowError(fmt.Errorf("creating keyfile: %w", err), window)
-					return
-				}
-				if writer != nil {
-					data := make([]byte, 32)
-					_, err := rand.Read(data)
-					if err != nil {
-						logger.Log("Creating keyfile data failed", *state, err)
-						dialog.ShowError(fmt.Errorf("creating keyfile: %w", err), window)
-						return
-					}
-					_, err = writer.Write(data)
-					if err != nil {
-						logger.Log("Writing keyfile failed", *state, err)
-						dialog.ShowError(fmt.Errorf("writing keyfile: %w", err), window)
-						return
-					}
-					state.AddKeyfile(writer.URI())
-					logger.Log("Created keyfile", *state, nil)
-					updateText()
-				} else {
-					logger.Log("Creating keyfile canceled", *state, nil)
-				}
-			}, window)
-			fd.SetFileName("Keyfile")
-			fd.Show()
-		})
-		clearBtn := widget.NewButtonWithIcon("Clear", theme.ContentClearIcon(), func() {
-			state.Keyfiles = state.Keyfiles[:0]
-			logger.Log("Cleared keyfiles", *state, nil)
-			updateText()
-		})
-		orderedKeyfiles := widget.NewCheckWithData("Require correct order", binding.BindBool(&(*state).OrderedKeyfiles))
-		if state.IsDecrypting() {
-			orderedKeyfiles.Disable()
-		}
-		c := container.New(
-			layout.NewVBoxLayout(),
-			orderedKeyfiles,
-			text,
-			container.New(
-				layout.NewHBoxLayout(),
-				addBtn,
-				createBtn,
-				clearBtn,
-			),
-		)
-		dialog.ShowCustom("Keyfiles", "Done", c, window)
-	})
-	return btn
-}
-
 var developmentWarningShown = false
 
 func developmentWarning(win fyne.Window) {
@@ -644,7 +537,7 @@ func main() {
 	w := a.NewWindow("PicoGo")
 
 	state := ui.State{}
-	updates := UpdateMethods{}
+	updates := ui.UpdateMethods{}
 
 	logger := ui.Logger{}
 	logger.Log("Starting PicoGo", state, nil)
@@ -762,12 +655,13 @@ func main() {
 			}
 		}
 	})
-	keyfileBtn := makeKeyfileBtn(&logger, &state, w)
+	keyfileBtn := ui.MakeKeyfileBtn(&logger, &state, &updates, w)
 	updates.Add(func() {
-		keyfileBtn.SetText("Keyfiles [" + strconv.Itoa(len(state.Keyfiles)) + "]")
-		if state.IsEncrypting() || state.IsDecrypting() {
+		shouldEnable := state.IsEncrypting() || state.IsDecrypting()
+		if shouldEnable && keyfileBtn.Disabled() {
 			keyfileBtn.Enable()
-		} else {
+		}
+		if !shouldEnable && !keyfileBtn.Disabled() {
 			keyfileBtn.Disable()
 		}
 	})
@@ -891,7 +785,7 @@ func main() {
 
 	go func() {
 		for {
-			updates.Update()
+			fyne.Do(updates.Update)
 			time.Sleep(time.Second / 10)
 		}
 	}()
