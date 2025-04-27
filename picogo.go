@@ -12,7 +12,6 @@ import (
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
-	"fyne.io/fyne/v2/data/binding"
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/storage"
@@ -514,92 +513,28 @@ func developmentWarning(win fyne.Window) {
 	}
 }
 
-func writeLogs(logger *ui.Logger, window fyne.Window) {
-	d := dialog.NewFileSave(func(writer fyne.URIWriteCloser, err error) {
-		if writer != nil {
-			defer writer.Close()
-		}
-		if err != nil {
-			dialog.ShowError(fmt.Errorf("writing logs: %w", err), window)
-			return
-		}
-		if writer != nil {
-			writer.Write([]byte(logger.CsvString()))
-		}
-	}, window)
-	d.SetFileName("picogo-logs.csv")
-	d.Show()
-}
-
 func main() {
 	a := app.New()
 	a.Settings().SetTheme(&myTheme{})
 	w := a.NewWindow("PicoGo")
-
 	state := ui.State{}
 	updates := ui.UpdateMethods{}
 
 	logger := ui.Logger{}
 	logger.Log("Starting PicoGo", state, nil)
 
-	info := widget.NewButtonWithIcon("", theme.InfoIcon(), func() {
-		title := "PicoGo " + ui.PicoGoVersion
-		message := "This app is not sponsored or supported by Picocrypt. It is a 3rd party " +
-			"app written to make Picocrypt files more easily accessible on mobile devices.\n\n" +
-			"If you have any problems, please report them so that they can be fixed."
-		confirm := dialog.NewInformation(title, message, w)
-		confirm.Show()
-	})
-	logBtn := widget.NewButtonWithIcon("", theme.MailSendIcon(), func() {
-		title := "Save Logs"
-		message := "Save log data to assist with issue reporting. Sensitive data (passwords, file names, etc.) " +
-			"will not be recorded, but you should still review the logs before sharing to ensure you are " +
-			"comfortable with the data being shared."
-		text := widget.NewLabel(message)
-		text.Wrapping = fyne.TextWrapWord
-		dialog.ShowCustomConfirm(title, "Save Logs", "Dismiss", text, func(b bool) {
-			if b {
-				writeLogs(&logger, w)
-			}
-		}, w)
-	})
+	infoBtn := ui.MakeInfoBtn(w)
+	logBtn := ui.MakeLogBtn(&logger, w)
 	info_row := container.New(
 		layout.NewHBoxLayout(),
-		info,
+		infoBtn,
 		logBtn,
 		layout.NewSpacer(),
 	)
 
-	picker := widget.NewButtonWithIcon("Choose File", theme.FileIcon(), func() {
-		fd := dialog.NewFileOpen(func(reader fyne.URIReadCloser, err error) {
-			if reader != nil {
-				defer reader.Close()
-			}
-			if err != nil {
-				logger.Log("Choosing file to encrypt/decrypt failed", state, err)
-				dialog.ShowError(fmt.Errorf("choosing file: %w", err), w)
-				return
-			}
-			if reader == nil {
-				logger.Log("Choosing file to encrypt/decrypt failed", state, errors.New("no file chosen"))
-				return
-			}
-			err = state.SetInput(reader.URI())
-			logger.Log("Setting file to encrypt/decrypt", state, err)
-			if err != nil {
-				dialog.ShowError(fmt.Errorf("choosing file: %w", err), w)
-			}
-		}, w)
-		fd.Show()
-	})
-
-	filename := widget.NewEntry()
-	filename.Disable()
-	comments := widget.NewMultiLineEntry()
-	commentsBinding := binding.BindString(&state.Comments)
-	comments.Bind(commentsBinding)
-	comments.Validator = nil
-	comments.Wrapping = fyne.TextWrapWord
+	picker := ui.MakeFilePicker(&state, &logger, w)
+	filename := ui.MakeFileName(&state, &updates)
+	comments := ui.MakeComments(&state, &updates)
 	file_row := container.New(
 		layout.NewStackLayout(),
 		border(),
@@ -609,62 +544,12 @@ func main() {
 			widget.NewLabel("Comments"), container.NewPadded(container.NewPadded(comments)),
 		),
 	)
-	updates.Add(func() {
-		input := state.Input()
-		if input == nil {
-			filename.SetText("")
-		} else {
-			filename.SetText(input.Name())
-		}
-		if state.IsEncrypting() {
-			if state.Deniability {
-				state.Comments = ""
-				commentsBinding.Reload()
-				comments.Disable()
-				comments.SetPlaceHolder("Comments are disabled in deniability mode")
-			} else {
-				comments.Enable()
-				comments.SetPlaceHolder("Comments are not encrypted")
-			}
-		} else {
-			commentsBinding.Reload()
-			comments.Disable()
-			comments.SetPlaceHolder("")
-		}
-	})
 
 	// Advanced encryption settings
-	reedSolomonBinding := binding.BindBool(&state.ReedSolomon)
-	paranoidBinding := binding.BindBool(&state.Paranoid)
-	deniabilityBinding := binding.BindBool(&state.Deniability)
-	updates.Add(func() {
-		reedSolomonBinding.Reload()
-		paranoidBinding.Reload()
-		deniabilityBinding.Reload()
-	})
-	reedSolomonCheck := widget.NewCheckWithData("Reed Solomon", reedSolomonBinding)
-	paranoidCheck := widget.NewCheckWithData("Paranoid", paranoidBinding)
-	deniabilityCheck := widget.NewCheckWithData("Deniability", deniabilityBinding)
-	updates.Add(func() {
-		checks := []*widget.Check{reedSolomonCheck, paranoidCheck, deniabilityCheck}
-		for _, check := range checks {
-			if state.IsEncrypting() {
-				check.Enable()
-			} else {
-				check.Disable()
-			}
-		}
-	})
+	reedSolomonCheck := ui.MakeSettingCheck("Reed Solomon", &state.ReedSolomon, &state, &updates)
+	paranoidCheck := ui.MakeSettingCheck("Paranoid", &state.Paranoid, &state, &updates)
+	deniabilityCheck := ui.MakeSettingCheck("Deniability", &state.Deniability, &state, &updates)
 	keyfileBtn := ui.MakeKeyfileBtn(&logger, &state, &updates, w)
-	updates.Add(func() {
-		shouldEnable := state.IsEncrypting() || state.IsDecrypting()
-		if shouldEnable && keyfileBtn.Disabled() {
-			keyfileBtn.Enable()
-		}
-		if !shouldEnable && !keyfileBtn.Disabled() {
-			keyfileBtn.Disable()
-		}
-	})
 	advanced_settings_row := container.New(
 		layout.NewStackLayout(),
 		border(),
@@ -689,79 +574,26 @@ func main() {
 		),
 	)
 
-	password := widget.NewPasswordEntry()
-	password.SetPlaceHolder("Password")
-	passwordBinding := binding.BindString(&state.Password)
-	password.Bind(passwordBinding)
-	password.Validator = nil
-	updates.Add(func() {
-		if state.IsDecrypting() || state.IsEncrypting() {
-			password.Enable()
-		} else {
-			password.Disable()
-		}
-	})
-	confirm := widget.NewPasswordEntry()
-	confirm.SetPlaceHolder("Confirm password")
-	confirmBinding := binding.BindString(&state.ConfirmPassword)
-	confirm.Bind(confirmBinding)
-	confirm.Validator = nil
-	updates.Add(func() {
-		passwordBinding.Reload()
-		confirmBinding.Reload()
-		if state.IsEncrypting() {
-			confirm.Show()
-		} else {
-			confirm.Hide()
-		}
-	})
 	passwordRow := container.New(
 		layout.NewStackLayout(),
 		border(),
 		container.NewPadded(container.NewPadded(
 			container.New(
 				layout.NewVBoxLayout(),
-				password,
-				confirm,
+				ui.MakePassword(&state, &updates),
+				ui.MakeConfirmPassword(&state, &updates),
 			),
 		)),
 	)
 
-	workBtn := widget.NewButton("Encrypt/Decrypt", func() {
-		if !(state.IsEncrypting() || state.IsDecrypting()) {
-			// This should never happen (the button should be hidden), but check in case
-			// there is a race condition
-			logger.Log("Encrypt/Decrypt button pressed", state, errors.New("button should be hidden"))
-			dialog.ShowError(errors.New("no file chosen"), w)
-			return
-		}
-		if state.IsEncrypting() {
-			if state.Password != state.ConfirmPassword {
-				logger.Log("Encrypt/Decrypt button pressed", state, errors.New("passwords do not match"))
-				dialog.ShowError(errors.New("passwords do not match"), w)
-			} else if state.Password == "" {
-				logger.Log("Encrypt/Decrypt button pressed", state, errors.New("password cannot be blank"))
-				dialog.ShowError(errors.New("password cannot be blank"), w)
-			} else {
-				logger.Log("Encrypt/Decrypt button pressed (encrypting)", state, nil)
-				encrypt(&logger, &state, w, a)
-			}
-			return
-		}
-		logger.Log("Encrypt/Decrypt button pressed (decrypting)", state, nil)
-		decrypt(&logger, &state, w, a)
-	})
-	updates.Add(func() {
-		if state.IsEncrypting() {
-			workBtn.SetText("Encrypt")
-			workBtn.Show()
-		} else if state.IsDecrypting() {
-			workBtn.SetText("Decrypt")
-			workBtn.Show()
-		} else {
-			workBtn.Hide()
-		}
-	})
+	workBtn := ui.MakeWorkBtn(
+		&logger,
+		&state,
+		w,
+		func() { encrypt(&logger, &state, w, a) },
+		func() { decrypt(&logger, &state, w, a) },
+		&updates,
+	)
 
 	w.SetContent(
 		container.New(
