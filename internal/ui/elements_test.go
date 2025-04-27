@@ -5,13 +5,9 @@ import (
 	"testing"
 
 	"fyne.io/fyne/v2"
-	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/storage"
+	"fyne.io/fyne/v2/test"
 )
-
-func testApp() fyne.App {
-	return app.New()
-}
 
 func MakeURI(name string) fyne.URI {
 	uri, err := storage.ParseURI("file://" + name)
@@ -49,8 +45,8 @@ func (t *TestReadWriteCloser) URI() fyne.URI {
 
 func TestWriteLogsCallback(t *testing.T) {
 	logger := Logger{}
-	testApp := app.New()
-	window := testApp.NewWindow("Test Window")
+	app := test.NewApp()
+	window := app.NewWindow("Test Window")
 	callback := writeLogsCallback(&logger, window)
 
 	test := TestReadWriteCloser{}
@@ -65,8 +61,8 @@ func TestWriteLogsCallback(t *testing.T) {
 
 func TestFilePickerCallback(t *testing.T) {
 	logger := Logger{}
-	testApp := app.New()
-	window := testApp.NewWindow("Test Window")
+	app := test.NewApp()
+	window := app.NewWindow("Test Window")
 	state := State{}
 	callback := filePickerCallback(&state, &logger, window)
 	test := TestReadWriteCloser{}
@@ -96,7 +92,6 @@ func TestFilePickerCallback(t *testing.T) {
 }
 
 func TestFilename(t *testing.T) {
-	_ = testApp()
 	state := State{}
 	updates := UpdateMethods{}
 	filename := MakeFileName(&state, &updates)
@@ -123,7 +118,6 @@ func TestFilename(t *testing.T) {
 }
 
 func TestComments(t *testing.T) {
-	_ = testApp()
 	state := State{}
 	updates := UpdateMethods{}
 	comments := MakeComments(&state, &updates)
@@ -144,10 +138,13 @@ func TestComments(t *testing.T) {
 	}
 
 	// Simulate adding comments
-	state.Comments = "test-comments"
+	test.Type(comments, "test-comments")
 	updates.Update()
 	if comments.Text != "test-comments" {
 		t.Errorf("Comments should be maintained")
+	}
+	if state.Comments != "test-comments" {
+		t.Errorf("State should be updated with comments")
 	}
 
 	// Choosing deniability should disable comments
@@ -184,7 +181,6 @@ func TestComments(t *testing.T) {
 }
 
 func TestMakeSettingCheck(t *testing.T) {
-	_ = testApp()
 	state := State{}
 	updates := UpdateMethods{}
 	check := MakeSettingCheck("test-check", &state.ReedSolomon, &state, &updates)
