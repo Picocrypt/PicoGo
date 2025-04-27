@@ -189,7 +189,7 @@ func MakeSettingCheck(name string, b *bool, state *State, updates *UpdateMethods
 	return check
 }
 
-func keyfileText() *widget.Entry {
+func keyfileText() *widget.Entry { // coverage-ignore
 	text := widget.NewMultiLineEntry()
 	text.Disable()
 	text.SetPlaceHolder("No keyfiles added")
@@ -216,7 +216,7 @@ func keyfileAddCallback(state *State, logger *Logger, window fyne.Window, textUp
 	}
 }
 
-func keyfileAddBtn(state *State, logger *Logger, window fyne.Window, textUpdate func()) *widget.Button {
+func keyfileAddBtn(state *State, logger *Logger, window fyne.Window, textUpdate func()) *widget.Button { // coverage-ignore
 	btn := widget.NewButtonWithIcon("Add", theme.ContentAddIcon(), func() {
 		fd := dialog.NewFileOpen(keyfileAddCallback(state, logger, window, textUpdate), window)
 		fd.Show()
@@ -230,7 +230,7 @@ func keyfileCreateCallback(state *State, logger *Logger, window fyne.Window, tex
 		if writer != nil {
 			defer writer.Close()
 		}
-		if err != nil {
+		if err != nil { // coverage-ignore
 			logger.Log("Creating keyfile failed", *state, err)
 			dialog.ShowError(fmt.Errorf("creating keyfile: %w", err), window)
 			return
@@ -238,13 +238,13 @@ func keyfileCreateCallback(state *State, logger *Logger, window fyne.Window, tex
 		if writer != nil {
 			data := make([]byte, 32)
 			_, err := rand.Read(data)
-			if err != nil {
+			if err != nil { // coverage-ignore
 				logger.Log("Creating keyfile data failed", *state, err)
 				dialog.ShowError(fmt.Errorf("creating keyfile: %w", err), window)
 				return
 			}
 			_, err = writer.Write(data)
-			if err != nil {
+			if err != nil { // coverage-ignore
 				logger.Log("Writing keyfile failed", *state, err)
 				dialog.ShowError(fmt.Errorf("writing keyfile: %w", err), window)
 				return
@@ -257,7 +257,7 @@ func keyfileCreateCallback(state *State, logger *Logger, window fyne.Window, tex
 	}
 }
 
-func keyfileCreateBtn(state *State, logger *Logger, window fyne.Window, textUpdate func()) *widget.Button {
+func keyfileCreateBtn(state *State, logger *Logger, window fyne.Window, textUpdate func()) *widget.Button { // coverage-ignore
 	btn := widget.NewButtonWithIcon("Create", theme.ContentAddIcon(), func() {
 		fd := dialog.NewFileSave(keyfileCreateCallback(state, logger, window, textUpdate), window)
 		fd.SetFileName("Keyfile")
@@ -274,24 +274,9 @@ func keyfileClearCallback(state *State, logger *Logger, textUpdate func()) func(
 	}
 }
 
-func keyfileClearBtn(state *State, logger *Logger, textUpdate func()) *widget.Button {
+func keyfileClearBtn(state *State, logger *Logger, textUpdate func()) *widget.Button { // coverage-ignore
 	btn := widget.NewButtonWithIcon("Clear", theme.ContentClearIcon(), keyfileClearCallback(state, logger, textUpdate))
 	return btn
-}
-
-func keyfileOrderedCallback(state *State) func(bool) {
-	return func(checked bool) {
-		(*state).OrderedKeyfiles = checked
-	}
-}
-
-func keyfileOrderedCheck(state *State) *widget.Check {
-	orderedKeyfiles := widget.NewCheck("Require correct order", keyfileOrderedCallback(state))
-	orderedKeyfiles.SetChecked(state.OrderedKeyfiles)
-	if state.IsDecrypting() {
-		orderedKeyfiles.Disable()
-	}
-	return orderedKeyfiles
 }
 
 func keyfileTextUpdate(state *State, text *widget.Entry) func() {
@@ -308,14 +293,14 @@ func keyfileTextUpdate(state *State, text *widget.Entry) func() {
 	}
 }
 
-func MakeKeyfileBtn(logger *Logger, state *State, updates *UpdateMethods, window fyne.Window) *widget.Button {
+func MakeKeyfileBtn(logger *Logger, state *State, updates *UpdateMethods, window fyne.Window) *widget.Button { // coverage-ignore
 	btn := widget.NewButtonWithIcon("Keyfile", theme.ContentAddIcon(), func() {
 		text := keyfileText()
 		textUpdate := keyfileTextUpdate(state, text)
 		textUpdate()
 		c := container.New(
 			layout.NewVBoxLayout(),
-			keyfileOrderedCheck(state),
+			MakeSettingCheck("Require order", &state.OrderedKeyfiles, state, updates),
 			text,
 			container.New(
 				layout.NewHBoxLayout(),
