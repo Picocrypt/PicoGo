@@ -351,3 +351,48 @@ func TestPasswordEntry(t *testing.T) {
 		t.Errorf("State should be updated with password")
 	}
 }
+
+func TestConfirmEntry(t *testing.T) {
+	state := State{}
+	updates := UpdateMethods{}
+	confirm := MakeConfirmPassword(&state, &updates)
+
+	updates.Update()
+	if confirm.Text != "" {
+		t.Errorf("Confirm should be empty")
+	}
+
+	// Test enabling / disabling
+	if state.IsEncrypting() || state.IsDecrypting() {
+		t.Errorf("State should not be encrypting or decrypting yet")
+	}
+	if confirm.Visible() {
+		t.Errorf("Confirm should not be visible yet")
+	}
+	state.SetInput(MakeURI("test.pcv"))
+	updates.Update()
+	if !state.IsDecrypting() {
+		t.Errorf("State should be decrypting")
+	}
+	if confirm.Visible() {
+		t.Errorf("Confirm should not be visible for decrypting")
+	}
+	state.SetInput(MakeURI("test"))
+	updates.Update()
+	if !state.IsEncrypting() {
+		t.Errorf("State should be encrypting")
+	}
+	if !confirm.Visible() {
+		t.Errorf("Confirm should be visible for encrypting")
+	}
+
+	// Type a password
+	test.Type(confirm, "test-confirm")
+	updates.Update()
+	if confirm.Text != "test-confirm" {
+		t.Errorf("Confirm should be maintained")
+	}
+	if state.ConfirmPassword != "test-confirm" {
+		t.Errorf("State should be updated with confirm password")
+	}
+}
