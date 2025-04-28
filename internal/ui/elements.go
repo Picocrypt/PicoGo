@@ -384,12 +384,12 @@ func workBtnCallback(state *State, logger *Logger, w fyne.Window, encrypt func()
 				dialog.ShowError(errors.New("password cannot be blank"), w)
 			} else {
 				logger.Log("Encrypt/Decrypt button pressed (encrypting)", *state, nil)
-				encrypt()
+				go encrypt()
 			}
 			return
 		}
 		logger.Log("Encrypt/Decrypt button pressed (decrypting)", *state, nil)
-		decrypt()
+		go decrypt()
 	}
 }
 

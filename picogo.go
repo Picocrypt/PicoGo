@@ -124,7 +124,7 @@ func chooseSaveAs(logger *ui.Logger, state *ui.State, window fyne.Window) {
 
 		}
 	}
-	d.Show()
+	fyne.Do(d.Show)
 }
 
 func saveOutput(logger *ui.Logger, state *ui.State, window fyne.Window, app fyne.App) {
@@ -293,15 +293,15 @@ func encrypt(logger *ui.Logger, state *ui.State, win fyne.Window, app fyne.App) 
 		container.New(layout.NewVBoxLayout(), widget.NewProgressBarInfinite(), status),
 		win,
 	)
-	d.Show()
+	fyne.Do(d.Show)
 	var encryptErr error
 	for {
 		doBreak := false
 		select {
 		case update := <-updateCh:
-			status.SetText(update.Status)
+			fyne.Do(func() { status.SetText(update.Status) })
 		case err := <-errCh:
-			d.Hide()
+			fyne.Do(d.Dismiss)
 			encryptErr = err
 			doBreak = true
 		default:
@@ -318,18 +318,20 @@ func encrypt(logger *ui.Logger, state *ui.State, win fyne.Window, app fyne.App) 
 	}
 	text := widget.NewLabel(state.Input().Name() + " has been encrypted.")
 	text.Wrapping = fyne.TextWrapWord
-	dialog.ShowCustomConfirm(
-		"Encryption Complete",
-		"Save",
-		"Cancel",
-		text,
-		func(b bool) {
-			if b {
-				chooseSaveAs(logger, state, win)
-			}
-		},
-		win,
-	)
+	fyne.Do(func() {
+		dialog.ShowCustomConfirm(
+			"Encryption Complete",
+			"Save",
+			"Cancel",
+			text,
+			func(b bool) {
+				if b {
+					chooseSaveAs(logger, state, win)
+				}
+			},
+			win,
+		)
+	})
 }
 
 func tryDecrypt(
@@ -390,13 +392,13 @@ func tryDecrypt(
 		container.New(layout.NewVBoxLayout(), widget.NewProgressBarInfinite(), status),
 		w,
 	)
-	d.Show()
+	fyne.Do(d.Show)
 	for {
 		select {
 		case update := <-updateCh:
-			status.SetText(update.Status)
+			fyne.Do(func() { status.SetText(update.Status) })
 		case err := <-errCh:
-			d.Hide()
+			fyne.Do(d.Dismiss)
 			logger.Log("Decryption routine end", *state, err.error)
 			return err.bool, err.error
 		default:
