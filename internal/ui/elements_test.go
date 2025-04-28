@@ -317,3 +317,37 @@ func TestKeyfileTextUpdate(t *testing.T) {
 		t.Errorf("Text should be updated to show keyfiles")
 	}
 }
+
+func TestPasswordEntry(t *testing.T) {
+	state := State{}
+	updates := UpdateMethods{}
+	password := MakePassword(&state, &updates)
+
+	updates.Update()
+	if password.Text != "" {
+		t.Errorf("Password should be empty")
+	}
+
+	// Test enabling / disabling
+	if state.IsEncrypting() || state.IsDecrypting() {
+		t.Errorf("State should not be encrypting or decrypting yet")
+	}
+	if !password.Disabled() {
+		t.Errorf("Password should be enabled")
+	}
+	state.SetInput(MakeURI("test.pcv"))
+	updates.Update()
+	if password.Disabled() {
+		t.Errorf("Password should be enabled")
+	}
+
+	// Type a password
+	test.Type(password, "test-password")
+	updates.Update()
+	if password.Text != "test-password" {
+		t.Errorf("Password should be maintained")
+	}
+	if state.Password != "test-password" {
+		t.Errorf("State should be updated with password")
+	}
+}
