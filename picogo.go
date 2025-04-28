@@ -592,8 +592,8 @@ func main() {
 		&logger,
 		&state,
 		w,
-		func() { encrypt(&logger, &state, w, a) },
-		func() { decrypt(&logger, &state, w, a) },
+		func() { go func() { encrypt(&logger, &state, w, a) }() },
+		func() { go func() { decrypt(&logger, &state, w, a) }() },
 		&updates,
 	)
 
