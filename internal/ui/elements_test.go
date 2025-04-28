@@ -396,3 +396,74 @@ func TestConfirmEntry(t *testing.T) {
 		t.Errorf("State should be updated with confirm password")
 	}
 }
+
+func TestWorkBtn(t *testing.T) {
+	state := State{}
+	updates := UpdateMethods{}
+	logger := Logger{}
+	app := test.NewApp()
+	window := app.NewWindow("Test Window")
+	encryptCalled := false
+	encrypt := func() {
+		encryptCalled = true
+	}
+	decryptCalled := false
+	decrypt := func() {
+		decryptCalled = true
+	}
+	workBtn := MakeWorkBtn(&logger, &state, window, encrypt, decrypt, &updates)
+
+	// Work button should start hidden
+	updates.Update()
+	if workBtn.Visible() {
+		t.Errorf("Work button should not be visible")
+	}
+	// Tapping should do nothing
+	test.Tap(workBtn)
+	if encryptCalled || decryptCalled {
+		t.Errorf("Encrypt or decrypt should not be called")
+	}
+
+	// Set state to encrypting
+	state.SetInput(MakeURI("test"))
+	updates.Update()
+	if !workBtn.Visible() {
+		t.Errorf("Work button should be visible")
+	}
+	if workBtn.Text != "Encrypt" {
+		t.Errorf("Work button should say 'Encrypt'")
+	}
+
+	// Test mismatched passwords
+	state.Password = "test-password"
+	state.ConfirmPassword = "test-confirm"
+	test.Tap(workBtn)
+	if encryptCalled || decryptCalled {
+		t.Errorf("Encrypt or decrypt should not be called")
+	}
+
+	// Match passwords
+	state.ConfirmPassword = "test-password"
+	test.Tap(workBtn)
+	if !encryptCalled || decryptCalled {
+		t.Errorf("Only encrypt should be called")
+	}
+
+	// Set state to decrypting
+	state.SetInput(MakeURI("test.pcv"))
+	updates.Update()
+	if !workBtn.Visible() {
+		t.Errorf("Work button should be visible")
+	}
+	if workBtn.Text != "Decrypt" {
+		t.Errorf("Work button should say 'Decrypt'")
+	}
+
+	// Test decrypting
+	encryptCalled = false
+	decryptCalled = false
+	test.Tap(workBtn)
+	if encryptCalled || !decryptCalled {
+		t.Errorf("Only decrypt should be called")
+	}
+}
