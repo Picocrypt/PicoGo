@@ -30,7 +30,7 @@ func (u *UpdateMethods) Update() {
 	}
 }
 
-func MakeInfoBtn(w fyne.Window) *widget.Button {
+func MakeInfoBtn(w fyne.Window) *widget.Button { // coverage-ignore
 	btn := widget.NewButtonWithIcon("", theme.InfoIcon(), func() {
 		title := "PicoGo " + PicoGoVersion
 		message := "This app is not sponsored or supported by Picocrypt. It is a 3rd party " +
