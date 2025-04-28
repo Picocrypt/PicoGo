@@ -5,4 +5,4 @@ threshold:
   # Minimum coverage percentage required for each package.
   package: 0
   # Minimum overall project coverage percentage required.
-  total: 40
+  total: 60
