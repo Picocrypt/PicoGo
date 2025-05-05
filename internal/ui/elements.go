@@ -328,22 +328,10 @@ func MakeKeyfileBtn(logger *Logger, state *State, updates *UpdateMethods, window
 	return btn
 }
 
-func MakePassword(state *State, updates *UpdateMethods) *widget.Entry {
+func makePassword() *widget.Entry {
 	password := widget.NewPasswordEntry()
 	password.SetPlaceHolder("Password")
-	binding := binding.BindString(&state.Password)
-	password.Bind(binding)
 	password.Validator = nil
-	updates.Add(func() {
-		binding.Reload()
-		if state.IsDecrypting() || state.IsEncrypting() {
-			if password.Disabled() {
-				password.Enable()
-			}
-		} else if !password.Disabled() {
-			password.Disable()
-		}
-	})
 	return password
 }
 
@@ -364,10 +352,10 @@ func workBtnCallback(state *State, logger *Logger, w fyne.Window, encrypt func()
 			return
 		}
 		if state.IsEncrypting() {
-			if state.Password != state.ConfirmPassword.Text {
+			if state.Password.Text != state.ConfirmPassword.Text {
 				logger.Log("Encrypt/Decrypt button pressed", *state, errors.New("passwords do not match"))
 				dialog.ShowError(errors.New("passwords do not match"), w)
-			} else if state.Password == "" {
+			} else if state.Password.Text == "" {
 				logger.Log("Encrypt/Decrypt button pressed", *state, errors.New("password cannot be blank"))
 				dialog.ShowError(errors.New("password cannot be blank"), w)
 			} else {

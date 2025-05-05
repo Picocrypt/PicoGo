@@ -56,7 +56,7 @@ type State struct {
 	Paranoid        bool
 	OrderedKeyfiles bool
 	Keyfiles        []fileDesc
-	Password        string
+	Password        *widget.Entry
 	ConfirmPassword *widget.Entry
 }
 
@@ -70,7 +70,7 @@ func NewState() *State {
 		Paranoid:        false,
 		OrderedKeyfiles: false,
 		Keyfiles:        []fileDesc{},
-		Password:        "",
+		Password:        makePassword(),
 		ConfirmPassword: makeConfirmPassword(),
 	}
 }
@@ -94,17 +94,18 @@ func (s *State) IsDecrypting() bool {
 }
 
 func (s *State) SetInput(input fyne.URI) error {
+	log.Println("Set input to", input)
 	s.Clear()
 	inputDesc := NewFileDesc(input)
 	s.input = &inputDesc
 
+	// Update Confirm field visibility
 	if s.IsEncrypting() {
 		if s.ConfirmPassword.Hidden {
 			fyne.Do(func() { s.ConfirmPassword.Show() })
 		}
 	} else {
 		if !s.ConfirmPassword.Hidden {
-			log.Println("Set confirm to not visible")
 			fyne.Do(func() { s.ConfirmPassword.Hide() })
 		}
 	}
@@ -136,14 +137,18 @@ func (s *State) AddKeyfile(uri fyne.URI) {
 }
 
 func (s *State) Clear() {
-	s.input = nil
-	s.SaveAs = nil
-	s.Comments = ""
-	s.ReedSolomon = false
-	s.Deniability = false
-	s.Paranoid = false
-	s.OrderedKeyfiles = false
-	s.Keyfiles = nil
-	s.Password = ""
-	s.ConfirmPassword.Text = ""
+	fyne.Do(func() {
+		s.input = nil
+		s.SaveAs = nil
+		s.Comments = ""
+		s.ReedSolomon = false
+		s.Deniability = false
+		s.Paranoid = false
+		s.OrderedKeyfiles = false
+		s.Keyfiles = nil
+		s.Password.Text = ""
+		s.Password.Refresh()
+		s.ConfirmPassword.Text = ""
+		s.ConfirmPassword.Refresh()
+	})
 }

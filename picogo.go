@@ -245,7 +245,7 @@ func encrypt(logger *ui.Logger, state *ui.State, win fyne.Window, app fyne.App) 
 			Deniability: state.Deniability,
 		}
 		header, err := encryption.EncryptHeadless(
-			input, state.Password, keyfiles, settings, headlessWriter, updateCh,
+			input, state.Password.Text, keyfiles, settings, headlessWriter, updateCh,
 		)
 		if err != nil {
 			logger.Log("Encrypt headless", *state, err)
@@ -378,7 +378,7 @@ func tryDecrypt(
 	})
 	go func() {
 		logger.Log("Decryption routine start", *state, nil)
-		damaged, err := encryption.Decrypt(state.Password, keyfiles, input, output, recoveryMode, updateCh)
+		damaged, err := encryption.Decrypt(state.Password.Text, keyfiles, input, output, recoveryMode, updateCh)
 		errCh <- struct {
 			bool
 			error
@@ -582,7 +582,7 @@ func main() {
 		container.NewPadded(container.NewPadded(
 			container.New(
 				layout.NewVBoxLayout(),
-				ui.MakePassword(state, &updates),
+				state.Password,
 				state.ConfirmPassword,
 			),
 		)),

@@ -319,36 +319,19 @@ func TestKeyfileTextUpdate(t *testing.T) {
 }
 
 func TestPasswordEntry(t *testing.T) {
-	state := State{}
-	updates := UpdateMethods{}
-	password := MakePassword(&state, &updates)
-
-	updates.Update()
-	if password.Text != "" {
+	state := NewState()
+	if state.Password.Text != "" {
 		t.Errorf("Password should be empty")
 	}
 
 	// Test enabling / disabling
-	if state.IsEncrypting() || state.IsDecrypting() {
-		t.Errorf("State should not be encrypting or decrypting yet")
-	}
-	if !password.Disabled() {
-		t.Errorf("Password should be enabled")
-	}
 	state.SetInput(MakeURI("test.pcv"))
-	updates.Update()
-	if password.Disabled() {
+	if state.Password.Disabled() {
 		t.Errorf("Password should be enabled")
 	}
-
-	// Type a password
-	test.Type(password, "test-password")
-	updates.Update()
-	if password.Text != "test-password" {
-		t.Errorf("Password should be maintained")
-	}
-	if state.Password != "test-password" {
-		t.Errorf("State should be updated with password")
+	state.SetInput(MakeURI("test"))
+	if state.Password.Disabled() {
+		t.Errorf("Password should be enabled")
 	}
 }
 
@@ -413,7 +396,7 @@ func TestWorkBtn(t *testing.T) {
 	}
 
 	// Test mismatched passwords
-	state.Password = "test-password"
+	state.Password.Text = "test-password"
 	state.ConfirmPassword.Text = "test-confirm"
 	test.Tap(workBtn)
 	if encryptCalled || decryptCalled {
