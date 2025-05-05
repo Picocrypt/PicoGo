@@ -2,11 +2,13 @@ package ui
 
 import (
 	"fmt"
+	"log"
 	"strings"
 	"sync"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/storage"
+	"fyne.io/fyne/v2/widget"
 
 	"github.com/picocrypt/picogo/internal/encryption"
 )
@@ -55,7 +57,22 @@ type State struct {
 	OrderedKeyfiles bool
 	Keyfiles        []fileDesc
 	Password        string
-	ConfirmPassword string
+	ConfirmPassword *widget.Entry
+}
+
+func NewState() *State {
+	return &State{
+		input:           nil,
+		SaveAs:          nil,
+		Comments:        "",
+		ReedSolomon:     false,
+		Deniability:     false,
+		Paranoid:        false,
+		OrderedKeyfiles: false,
+		Keyfiles:        []fileDesc{},
+		Password:        "",
+		ConfirmPassword: makeConfirmPassword(),
+	}
 }
 
 func (s *State) Input() *fileDesc {
@@ -81,6 +98,17 @@ func (s *State) SetInput(input fyne.URI) error {
 	inputDesc := NewFileDesc(input)
 	s.input = &inputDesc
 
+	if s.IsEncrypting() {
+		if s.ConfirmPassword.Hidden {
+			fyne.Do(func() { s.ConfirmPassword.Show() })
+		}
+	} else {
+		if !s.ConfirmPassword.Hidden {
+			log.Println("Set confirm to not visible")
+			fyne.Do(func() { s.ConfirmPassword.Hide() })
+		}
+	}
+
 	if s.IsDecrypting() {
 		reader, err := storage.Reader(input)
 		if reader != nil {
@@ -99,6 +127,7 @@ func (s *State) SetInput(input fyne.URI) error {
 		s.Paranoid = settings.Paranoid
 		s.OrderedKeyfiles = settings.OrderedKf
 	}
+
 	return nil
 }
 
@@ -116,5 +145,5 @@ func (s *State) Clear() {
 	s.OrderedKeyfiles = false
 	s.Keyfiles = nil
 	s.Password = ""
-	s.ConfirmPassword = ""
+	s.ConfirmPassword.Text = ""
 }

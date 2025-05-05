@@ -347,22 +347,10 @@ func MakePassword(state *State, updates *UpdateMethods) *widget.Entry {
 	return password
 }
 
-func MakeConfirmPassword(state *State, updates *UpdateMethods) *widget.Entry {
+func makeConfirmPassword() *widget.Entry {
 	confirm := widget.NewPasswordEntry()
 	confirm.SetPlaceHolder("Confirm password")
-	binding := binding.BindString(&state.ConfirmPassword)
-	confirm.Bind(binding)
 	confirm.Validator = nil
-	updates.Add(func() {
-		binding.Reload()
-		if state.IsEncrypting() {
-			if !confirm.Visible() {
-				confirm.Show()
-			}
-		} else if confirm.Visible() {
-			confirm.Hide()
-		}
-	})
 	return confirm
 }
 
@@ -376,7 +364,7 @@ func workBtnCallback(state *State, logger *Logger, w fyne.Window, encrypt func()
 			return
 		}
 		if state.IsEncrypting() {
-			if state.Password != state.ConfirmPassword {
+			if state.Password != state.ConfirmPassword.Text {
 				logger.Log("Encrypt/Decrypt button pressed", *state, errors.New("passwords do not match"))
 				dialog.ShowError(errors.New("passwords do not match"), w)
 			} else if state.Password == "" {

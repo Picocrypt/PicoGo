@@ -353,52 +353,30 @@ func TestPasswordEntry(t *testing.T) {
 }
 
 func TestConfirmEntry(t *testing.T) {
-	state := State{}
-	updates := UpdateMethods{}
-	confirm := MakeConfirmPassword(&state, &updates)
-
-	updates.Update()
-	if confirm.Text != "" {
+	state := NewState()
+	if state.ConfirmPassword.Text != "" {
 		t.Errorf("Confirm should be empty")
 	}
 
 	// Test enabling / disabling
-	if state.IsEncrypting() || state.IsDecrypting() {
-		t.Errorf("State should not be encrypting or decrypting yet")
-	}
-	if confirm.Visible() {
-		t.Errorf("Confirm should not be visible yet")
-	}
 	state.SetInput(MakeURI("test.pcv"))
-	updates.Update()
 	if !state.IsDecrypting() {
 		t.Errorf("State should be decrypting")
 	}
-	if confirm.Visible() {
+	if state.ConfirmPassword.Visible() {
 		t.Errorf("Confirm should not be visible for decrypting")
 	}
 	state.SetInput(MakeURI("test"))
-	updates.Update()
 	if !state.IsEncrypting() {
 		t.Errorf("State should be encrypting")
 	}
-	if !confirm.Visible() {
+	if !state.ConfirmPassword.Visible() {
 		t.Errorf("Confirm should be visible for encrypting")
-	}
-
-	// Type a password
-	test.Type(confirm, "test-confirm")
-	updates.Update()
-	if confirm.Text != "test-confirm" {
-		t.Errorf("Confirm should be maintained")
-	}
-	if state.ConfirmPassword != "test-confirm" {
-		t.Errorf("State should be updated with confirm password")
 	}
 }
 
 func TestWorkBtn(t *testing.T) {
-	state := State{}
+	state := NewState()
 	updates := UpdateMethods{}
 	logger := Logger{}
 	app := test.NewApp()
@@ -411,7 +389,7 @@ func TestWorkBtn(t *testing.T) {
 	decrypt := func() {
 		decryptCalled = true
 	}
-	workBtn := MakeWorkBtn(&logger, &state, window, encrypt, decrypt, &updates)
+	workBtn := MakeWorkBtn(&logger, state, window, encrypt, decrypt, &updates)
 
 	// Work button should start hidden
 	updates.Update()
@@ -436,14 +414,14 @@ func TestWorkBtn(t *testing.T) {
 
 	// Test mismatched passwords
 	state.Password = "test-password"
-	state.ConfirmPassword = "test-confirm"
+	state.ConfirmPassword.Text = "test-confirm"
 	test.Tap(workBtn)
 	if encryptCalled || decryptCalled {
 		t.Errorf("Encrypt or decrypt should not be called")
 	}
 
 	// Match passwords
-	state.ConfirmPassword = "test-password"
+	state.ConfirmPassword.Text = "test-password"
 	test.Tap(workBtn)
 	if !encryptCalled || decryptCalled {
 		t.Errorf("Only encrypt should be called")

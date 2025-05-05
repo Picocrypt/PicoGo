@@ -519,11 +519,11 @@ func main() {
 	a := app.New()
 	a.Settings().SetTheme(&myTheme{})
 	w := a.NewWindow("PicoGo")
-	state := ui.State{}
+	state := ui.NewState()
 	updates := ui.UpdateMethods{}
 
 	logger := ui.Logger{}
-	logger.Log("Starting PicoGo", state, nil)
+	logger.Log("Starting PicoGo", *state, nil)
 
 	infoBtn := ui.MakeInfoBtn(w)
 	logBtn := ui.MakeLogBtn(&logger, w)
@@ -534,9 +534,9 @@ func main() {
 		layout.NewSpacer(),
 	)
 
-	picker := ui.MakeFilePicker(&state, &logger, w)
-	filename := ui.MakeFileName(&state, &updates)
-	comments := ui.MakeComments(&state, &updates)
+	picker := ui.MakeFilePicker(state, &logger, w)
+	filename := ui.MakeFileName(state, &updates)
+	comments := ui.MakeComments(state, &updates)
 	file_row := container.New(
 		layout.NewStackLayout(),
 		border(),
@@ -548,10 +548,10 @@ func main() {
 	)
 
 	// Advanced encryption settings
-	reedSolomonCheck := ui.MakeSettingCheck("Reed Solomon", &state.ReedSolomon, &state, &updates)
-	paranoidCheck := ui.MakeSettingCheck("Paranoid", &state.Paranoid, &state, &updates)
-	deniabilityCheck := ui.MakeSettingCheck("Deniability", &state.Deniability, &state, &updates)
-	keyfileBtn := ui.MakeKeyfileBtn(&logger, &state, &updates, w)
+	reedSolomonCheck := ui.MakeSettingCheck("Reed Solomon", &state.ReedSolomon, state, &updates)
+	paranoidCheck := ui.MakeSettingCheck("Paranoid", &state.Paranoid, state, &updates)
+	deniabilityCheck := ui.MakeSettingCheck("Deniability", &state.Deniability, state, &updates)
+	keyfileBtn := ui.MakeKeyfileBtn(&logger, state, &updates, w)
 	advanced_settings_row := container.New(
 		layout.NewStackLayout(),
 		border(),
@@ -582,18 +582,18 @@ func main() {
 		container.NewPadded(container.NewPadded(
 			container.New(
 				layout.NewVBoxLayout(),
-				ui.MakePassword(&state, &updates),
-				ui.MakeConfirmPassword(&state, &updates),
+				ui.MakePassword(state, &updates),
+				state.ConfirmPassword,
 			),
 		)),
 	)
 
 	workBtn := ui.MakeWorkBtn(
 		&logger,
-		&state,
+		state,
 		w,
-		func() { go func() { encrypt(&logger, &state, w, a) }() },
-		func() { go func() { decrypt(&logger, &state, w, a) }() },
+		func() { go func() { encrypt(&logger, state, w, a) }() },
+		func() { go func() { decrypt(&logger, state, w, a) }() },
 		&updates,
 	)
 
@@ -614,7 +614,7 @@ func main() {
 	})
 
 	updates.Add(func() {
-		saveOutput(&logger, &state, w, a)
+		saveOutput(&logger, state, w, a)
 	})
 
 	go func() {
