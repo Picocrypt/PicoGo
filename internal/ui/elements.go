@@ -124,14 +124,6 @@ func filenameUpdate(entry *widget.Entry, state *State) func() {
 	}
 }
 
-func MakeFileName(state *State, updates *UpdateMethods) *widget.Entry {
-	filename := widget.NewEntry()
-	filename.Disable()
-	filename.SetPlaceHolder("No file chosen")
-	updates.Add(filenameUpdate(filename, state))
-	return filename
-}
-
 func makeComments() *widget.Entry {
 	comments := widget.NewMultiLineEntry()
 	comments.Validator = nil

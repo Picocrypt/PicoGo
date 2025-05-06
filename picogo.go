@@ -535,13 +535,12 @@ func main() {
 	)
 
 	picker := ui.MakeFilePicker(state, &logger, w)
-	filename := ui.MakeFileName(state, &updates)
 	file_row := container.New(
 		layout.NewStackLayout(),
 		border(),
 		container.New(
 			layout.NewFormLayout(),
-			widget.NewLabel("File"), container.NewPadded(container.NewPadded(filename)),
+			widget.NewLabel("File"), container.NewPadded(container.NewPadded(state.FileName)),
 			widget.NewLabel("Comments"), container.NewPadded(container.NewPadded(state.Comments)),
 		),
 	)

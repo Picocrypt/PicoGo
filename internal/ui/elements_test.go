@@ -92,27 +92,18 @@ func TestFilePickerCallback(t *testing.T) {
 }
 
 func TestFilename(t *testing.T) {
-	state := State{}
-	updates := UpdateMethods{}
-	filename := MakeFileName(&state, &updates)
-
-	updates.Update()
-	if !filename.Disabled() {
-		t.Errorf("Filename should always be disabled")
-	}
-	if filename.Text != "" {
+	state := NewState()
+	if state.FileName.Text != "" {
 		t.Errorf("Filename should be empty")
 	}
 
 	state.SetInput(MakeURI("test-filename"))
-	updates.Update()
-	if filename.Text != "test-filename" {
+	if state.FileName.Text != "test-filename" {
 		t.Errorf("Filname should match input")
 	}
 
 	state.SetInput(MakeURI("test-filename-2"))
-	updates.Update()
-	if filename.Text != "test-filename-2" {
+	if state.FileName.Text != "test-filename-2" {
 		t.Errorf("Filname should match input")
 	}
 }

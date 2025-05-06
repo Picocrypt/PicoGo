@@ -48,6 +48,7 @@ func NewFileDesc(uri fyne.URI) fileDesc {
 }
 
 type State struct {
+	FileName        *widget.Label
 	input           *fileDesc
 	SaveAs          *fileDesc
 	Comments        *widget.Entry
@@ -62,6 +63,7 @@ type State struct {
 
 func NewState() *State {
 	state := State{
+		FileName:        widget.NewLabel(""),
 		input:           nil,
 		SaveAs:          nil,
 		Comments:        makeComments(),
@@ -111,6 +113,7 @@ func (s *State) SetInput(input fyne.URI) error {
 	s.Clear()
 	inputDesc := NewFileDesc(input)
 	s.input = &inputDesc
+	fyne.Do(func() { s.FileName.SetText(inputDesc.Name()) })
 
 	// Update checkboxes
 	fyne.Do(func() {
@@ -175,6 +178,7 @@ func (s *State) AddKeyfile(uri fyne.URI) {
 
 func (s *State) Clear() {
 	fyne.Do(func() {
+		s.FileName.SetText("")
 		s.input = nil
 		s.SaveAs = nil
 		s.Comments.SetText("")
