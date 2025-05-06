@@ -161,18 +161,9 @@ func TestKeyfileAddCallback(t *testing.T) {
 	app := test.NewApp()
 	window := app.NewWindow("Test Window")
 	logger := Logger{}
-	updateCalled := false
-	textUpdate := func() {
-		updateCalled = true
-	}
-	callback := keyfileAddCallback(&state, &logger, window, textUpdate)
+	callback := keyfileAddCallback(&state, &logger, window)
 
 	callback(nil, nil)
-	if !updateCalled {
-		t.Errorf("Update function should be called")
-	}
-
-	updateCalled = false
 	reader := TestReadWriteCloser{}
 	callback(&reader, nil)
 	if !reader.isClosed {
@@ -191,18 +182,9 @@ func TestKeyfileCreateCallback(t *testing.T) {
 	app := test.NewApp()
 	window := app.NewWindow("Test Window")
 	logger := Logger{}
-	updateCalled := false
-	textUpdate := func() {
-		updateCalled = true
-	}
-	callback := keyfileCreateCallback(&state, &logger, window, textUpdate)
+	callback := keyfileCreateCallback(&state, &logger, window)
 
 	callback(nil, nil)
-	if !updateCalled {
-		t.Errorf("Update function should be called")
-	}
-
-	updateCalled = false
 	reader := TestReadWriteCloser{}
 	callback(&reader, nil)
 	if !reader.isClosed {
@@ -219,39 +201,27 @@ func TestKeyfileCreateCallback(t *testing.T) {
 func TestKeyfileClearCallback(t *testing.T) {
 	state := State{}
 	logger := Logger{}
-	updateCalled := false
-	textUpdate := func() {
-		updateCalled = true
-	}
-	callback := keyfileClearCallback(&state, &logger, textUpdate)
+	callback := keyfileClearCallback(&state, &logger)
 
 	state.AddKeyfile(MakeURI("test-keyfile"))
 	if len(state.Keyfiles) != 1 {
 		t.Errorf("Expected one keyfile, but got %d", len(state.Keyfiles))
 	}
 	callback()
-	if !updateCalled {
-		t.Errorf("Update function should be called")
-	}
 	if len(state.Keyfiles) != 0 {
 		t.Errorf("Expected no keyfiles, but got %d", len(state.Keyfiles))
 	}
 }
 
 func TestKeyfileTextUpdate(t *testing.T) {
-	state := State{}
-	text := keyfileText()
-	update := keyfileTextUpdate(&state, text)
-
-	update()
-	if text.Text != "" {
+	state := NewState()
+	if state.KeyfileText.Text != "" {
 		t.Errorf("Text should be empty")
 	}
 
 	state.AddKeyfile(MakeURI("test-keyfile-1"))
 	state.AddKeyfile(MakeURI("test-keyfile-2"))
-	update()
-	if text.Text != "test-keyfile-1\ntest-keyfile-2" {
+	if state.KeyfileText.Text != "test-keyfile-1\ntest-keyfile-2" {
 		t.Errorf("Text should be updated to show keyfiles")
 	}
 }

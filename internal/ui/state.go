@@ -57,6 +57,7 @@ type State struct {
 	Paranoid        *widget.Check
 	OrderedKeyfiles *widget.Check
 	Keyfiles        []fileDesc
+	KeyfileText     *widget.Entry
 	Password        *widget.Entry
 	ConfirmPassword *widget.Entry
 }
@@ -72,6 +73,7 @@ func NewState() *State {
 		Paranoid:        widget.NewCheck("Paranoid", nil),
 		OrderedKeyfiles: widget.NewCheck("Require correct order", nil),
 		Keyfiles:        []fileDesc{},
+		KeyfileText:     keyfileText(),
 		Password:        makePassword(),
 		ConfirmPassword: makeConfirmPassword(),
 	}
@@ -174,6 +176,17 @@ func (s *State) SetInput(input fyne.URI) error {
 
 func (s *State) AddKeyfile(uri fyne.URI) {
 	s.Keyfiles = append(s.Keyfiles, NewFileDesc(uri))
+	names := []string{}
+	for _, kf := range s.Keyfiles {
+		names = append(names, kf.Name())
+	}
+	msg := strings.Join(names, "\n")
+	fyne.Do(func() { s.KeyfileText.SetText(msg) })
+}
+
+func (s *State) ClearKeyfiles() {
+	s.Keyfiles = []fileDesc{}
+	fyne.Do(func() { s.KeyfileText.SetText("No keyfiles added") })
 }
 
 func (s *State) Clear() {

@@ -546,25 +546,48 @@ func main() {
 	)
 
 	// Advanced encryption settings
-	keyfileBtn := ui.MakeKeyfileBtn(&logger, state, &updates, w)
 	advanced_settings_row := container.New(
 		layout.NewStackLayout(),
 		border(),
 		container.New(
 			layout.NewVBoxLayout(),
-			widget.NewRichTextFromMarkdown("### Advanced Settings"),
 			container.New(
-				layout.NewGridLayoutWithColumns(2),
+				layout.NewVBoxLayout(),
+				widget.NewRichTextFromMarkdown("### Settings"),
 				container.New(
-					layout.NewVBoxLayout(),
+					layout.NewHBoxLayout(),
 					state.ReedSolomon,
 					state.Paranoid,
 					state.Deniability,
 				),
+			),
+		),
+	)
+	keyfiles := container.New(
+		layout.NewStackLayout(),
+		border(),
+		container.NewPadded(
+			container.New(
+				layout.NewVBoxLayout(),
+				widget.NewRichTextFromMarkdown("### Keyfiles"),
 				container.NewPadded(
-					container.New(
-						layout.NewVBoxLayout(),
-						keyfileBtn,
+					container.NewBorder(
+						nil,
+						nil,
+						container.New(
+							layout.NewVBoxLayout(),
+							ui.KeyfileAddBtn(state, &logger, w),
+							ui.KeyfileCreateBtn(state, &logger, w),
+							ui.KeyfileClearBtn(state, &logger),
+						),
+						nil,
+						container.NewPadded(
+							container.New(
+								layout.NewVBoxLayout(),
+								state.OrderedKeyfiles,
+								state.KeyfileText,
+							),
+						),
 					),
 				),
 			),
@@ -599,6 +622,7 @@ func main() {
 			picker,
 			file_row,
 			advanced_settings_row,
+			keyfiles,
 			passwordRow,
 			workBtn,
 		),
