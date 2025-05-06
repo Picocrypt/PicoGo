@@ -238,7 +238,7 @@ func encrypt(logger *ui.Logger, state *ui.State, win fyne.Window, app fyne.App) 
 			keyfiles = append(keyfiles, r)
 		}
 		settings := encryption.Settings{
-			Comments:    state.Comments,
+			Comments:    state.Comments.Text,
 			ReedSolomon: state.ReedSolomon.Checked,
 			Paranoid:    state.Paranoid.Checked,
 			OrderedKf:   state.OrderedKeyfiles.Checked,
@@ -536,14 +536,13 @@ func main() {
 
 	picker := ui.MakeFilePicker(state, &logger, w)
 	filename := ui.MakeFileName(state, &updates)
-	comments := ui.MakeComments(state, &updates)
 	file_row := container.New(
 		layout.NewStackLayout(),
 		border(),
 		container.New(
 			layout.NewFormLayout(),
 			widget.NewLabel("File"), container.NewPadded(container.NewPadded(filename)),
-			widget.NewLabel("Comments"), container.NewPadded(container.NewPadded(comments)),
+			widget.NewLabel("Comments"), container.NewPadded(container.NewPadded(state.Comments)),
 		),
 	)
 

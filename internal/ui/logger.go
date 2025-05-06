@@ -35,7 +35,7 @@ func stateJson(state State) string {
 	fields := []string{
 		"\"Input\":" + redactedFile(state.Input()),
 		"\"SaveAs\":" + redactedFile(state.SaveAs),
-		"\"Comments\":\"" + redactedString(state.Comments) + "\"",
+		"\"Comments\":\"" + redactedString(state.Comments.Text) + "\"",
 		"\"ReedSolomon\":" + strconv.FormatBool(state.ReedSolomon.Checked),
 		"\"Deniability\":" + strconv.FormatBool(state.Deniability.Checked),
 		"\"Paranoid\":" + strconv.FormatBool(state.Paranoid.Checked),

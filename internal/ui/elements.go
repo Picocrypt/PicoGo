@@ -9,7 +9,6 @@ import (
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
-	"fyne.io/fyne/v2/data/binding"
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/theme"
@@ -133,10 +132,8 @@ func MakeFileName(state *State, updates *UpdateMethods) *widget.Entry {
 	return filename
 }
 
-func MakeComments(state *State, updates *UpdateMethods) *widget.Entry {
+func makeComments() *widget.Entry {
 	comments := widget.NewMultiLineEntry()
-	binding := binding.BindString(&state.Comments)
-	comments.Bind(binding)
 	comments.Validator = nil
 	comments.Wrapping = fyne.TextWrapWord
 	return comments

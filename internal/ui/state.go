@@ -50,7 +50,7 @@ func NewFileDesc(uri fyne.URI) fileDesc {
 type State struct {
 	input           *fileDesc
 	SaveAs          *fileDesc
-	Comments        string
+	Comments        *widget.Entry
 	ReedSolomon     *widget.Check
 	Deniability     *widget.Check
 	Paranoid        *widget.Check
@@ -64,7 +64,7 @@ func NewState() *State {
 	state := State{
 		input:           nil,
 		SaveAs:          nil,
-		Comments:        "",
+		Comments:        makeComments(),
 		ReedSolomon:     widget.NewCheck("Reed-Solomon", nil),
 		Deniability:     widget.NewCheck("Deniability", nil),
 		Paranoid:        widget.NewCheck("Paranoid", nil),
@@ -73,10 +73,19 @@ func NewState() *State {
 		Password:        makePassword(),
 		ConfirmPassword: makeConfirmPassword(),
 	}
-	state.Deniability.OnChanged = func(checked bool) {
-		log.Println("TODO: disable comments")
-	}
+	state.Deniability.OnChanged = func(checked bool) { state.updateComments() }
 	return &state
+}
+
+func (s *State) updateComments() {
+	if s.Deniability.Checked {
+		s.Comments.SetText("")
+		s.Comments.SetPlaceHolder("Comments are disabled in deniability mode")
+		s.Comments.Disable()
+	} else {
+		s.Comments.SetPlaceHolder("Comments are not encrypted")
+		s.Comments.Enable()
+	}
 }
 
 func (s *State) Input() *fileDesc {
@@ -122,6 +131,7 @@ func (s *State) SetInput(input fyne.URI) error {
 				box.Refresh()
 			}
 		}
+		s.updateComments()
 	})
 
 	// Update Confirm field visibility
@@ -148,15 +158,11 @@ func (s *State) SetInput(input fyne.URI) error {
 			return fmt.Errorf("failed to get encryption settings: %w", err)
 		}
 		fyne.Do(func() {
-			s.Comments = settings.Comments
-			s.ReedSolomon.Checked = settings.ReedSolomon
-			s.ReedSolomon.Refresh()
-			s.Deniability.Checked = settings.Deniability
-			s.Deniability.Refresh()
-			s.Paranoid.Checked = settings.Paranoid
-			s.Paranoid.Refresh()
-			s.OrderedKeyfiles.Checked = settings.OrderedKf
-			s.OrderedKeyfiles.Refresh()
+			s.Comments.SetText(settings.Comments)
+			s.ReedSolomon.SetChecked(settings.ReedSolomon)
+			s.Deniability.SetChecked(settings.Deniability)
+			s.Paranoid.SetChecked(settings.Paranoid)
+			s.OrderedKeyfiles.SetChecked(settings.OrderedKf)
 		})
 	}
 
@@ -171,7 +177,7 @@ func (s *State) Clear() {
 	fyne.Do(func() {
 		s.input = nil
 		s.SaveAs = nil
-		s.Comments = ""
+		s.Comments.SetText("")
 		s.ReedSolomon.SetChecked(false)
 		s.Deniability.SetChecked(false)
 		s.Paranoid.SetChecked(false)

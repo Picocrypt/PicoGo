@@ -118,64 +118,49 @@ func TestFilename(t *testing.T) {
 }
 
 func TestComments(t *testing.T) {
-	state := State{}
-	updates := UpdateMethods{}
-	comments := MakeComments(&state, &updates)
+	state := NewState()
 
 	state.SetInput(MakeURI("test"))
 	if !state.IsEncrypting() {
 		t.Errorf("State should be encrypting")
 	}
-	updates.Update()
-	if comments.Text != "" {
+	if state.Comments.Text != "" {
 		t.Errorf("Comments should be empty")
 	}
-	if comments.Disabled() {
+	if state.Comments.Disabled() {
 		t.Errorf("Comments should be enabled")
 	}
-	if comments.PlaceHolder != "Comments are not encrypted" {
+	if state.Comments.PlaceHolder != "Comments are not encrypted" {
 		t.Errorf("Comments should warn user that they are not encrypted")
-	}
-
-	// Simulate adding comments
-	test.Type(comments, "test-comments")
-	updates.Update()
-	if comments.Text != "test-comments" {
-		t.Errorf("Comments should be maintained")
-	}
-	if state.Comments != "test-comments" {
-		t.Errorf("State should be updated with comments")
 	}
 
 	// Choosing deniability should disable comments
 	state.Deniability.Checked = true
-	updates.Update()
-	if comments.Text != "" {
+	if state.Comments.Text != "" {
 		t.Errorf("Comments should be empty")
 	}
-	if !comments.Disabled() {
+	if !state.Comments.Disabled() {
 		t.Errorf("Comments should be disabled")
 	}
-	if comments.PlaceHolder != "Comments are disabled in deniability mode" {
+	if state.Comments.PlaceHolder != "Comments are disabled in deniability mode" {
 		t.Errorf("Comments should warn user that they are disabled")
 	}
-	if state.Comments != "" {
+	if state.Comments.Text != "" {
 		t.Errorf("State should be updated with comments")
 	}
 
 	// Switching to decrypting mode should disable comments
 	state.SetInput(MakeURI("test.pcv"))
-	updates.Update()
 	if !state.IsDecrypting() {
 		t.Errorf("State should be decrypting")
 	}
-	if comments.Text != "" {
+	if state.Comments.Text != "" {
 		t.Errorf("Comments should be empty")
 	}
-	if !comments.Disabled() {
+	if !state.Comments.Disabled() {
 		t.Errorf("Comments should be disabled")
 	}
-	if comments.PlaceHolder != "" {
+	if state.Comments.PlaceHolder != "" {
 		t.Errorf("Comments should not have a placeholder")
 	}
 }
