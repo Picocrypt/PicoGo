@@ -51,28 +51,32 @@ type State struct {
 	input           *fileDesc
 	SaveAs          *fileDesc
 	Comments        string
-	ReedSolomon     bool
-	Deniability     bool
-	Paranoid        bool
-	OrderedKeyfiles bool
+	ReedSolomon     *widget.Check
+	Deniability     *widget.Check
+	Paranoid        *widget.Check
+	OrderedKeyfiles *widget.Check
 	Keyfiles        []fileDesc
 	Password        *widget.Entry
 	ConfirmPassword *widget.Entry
 }
 
 func NewState() *State {
-	return &State{
+	state := State{
 		input:           nil,
 		SaveAs:          nil,
 		Comments:        "",
-		ReedSolomon:     false,
-		Deniability:     false,
-		Paranoid:        false,
-		OrderedKeyfiles: false,
+		ReedSolomon:     widget.NewCheck("Reed-Solomon", nil),
+		Deniability:     widget.NewCheck("Deniability", nil),
+		Paranoid:        widget.NewCheck("Paranoid", nil),
+		OrderedKeyfiles: widget.NewCheck("Require correct order", nil),
 		Keyfiles:        []fileDesc{},
 		Password:        makePassword(),
 		ConfirmPassword: makeConfirmPassword(),
 	}
+	state.Deniability.OnChanged = func(checked bool) {
+		log.Println("TODO: disable comments")
+	}
+	return &state
 }
 
 func (s *State) Input() *fileDesc {
@@ -99,6 +103,27 @@ func (s *State) SetInput(input fyne.URI) error {
 	inputDesc := NewFileDesc(input)
 	s.input = &inputDesc
 
+	// Update checkboxes
+	fyne.Do(func() {
+		boxes := []*widget.Check{
+			s.ReedSolomon,
+			s.Deniability,
+			s.Paranoid,
+			s.OrderedKeyfiles,
+		}
+		if s.IsEncrypting() {
+			for _, box := range boxes {
+				box.Enable()
+				box.Refresh()
+			}
+		} else {
+			for _, box := range boxes {
+				box.Disable()
+				box.Refresh()
+			}
+		}
+	})
+
 	// Update Confirm field visibility
 	if s.IsEncrypting() {
 		if s.ConfirmPassword.Hidden {
@@ -122,11 +147,17 @@ func (s *State) SetInput(input fyne.URI) error {
 		if err != nil {
 			return fmt.Errorf("failed to get encryption settings: %w", err)
 		}
-		s.Comments = settings.Comments
-		s.ReedSolomon = settings.ReedSolomon
-		s.Deniability = settings.Deniability
-		s.Paranoid = settings.Paranoid
-		s.OrderedKeyfiles = settings.OrderedKf
+		fyne.Do(func() {
+			s.Comments = settings.Comments
+			s.ReedSolomon.Checked = settings.ReedSolomon
+			s.ReedSolomon.Refresh()
+			s.Deniability.Checked = settings.Deniability
+			s.Deniability.Refresh()
+			s.Paranoid.Checked = settings.Paranoid
+			s.Paranoid.Refresh()
+			s.OrderedKeyfiles.Checked = settings.OrderedKf
+			s.OrderedKeyfiles.Refresh()
+		})
 	}
 
 	return nil
@@ -141,14 +172,12 @@ func (s *State) Clear() {
 		s.input = nil
 		s.SaveAs = nil
 		s.Comments = ""
-		s.ReedSolomon = false
-		s.Deniability = false
-		s.Paranoid = false
-		s.OrderedKeyfiles = false
+		s.ReedSolomon.SetChecked(false)
+		s.Deniability.SetChecked(false)
+		s.Paranoid.SetChecked(false)
+		s.OrderedKeyfiles.SetChecked(false)
 		s.Keyfiles = nil
-		s.Password.Text = ""
-		s.Password.Refresh()
-		s.ConfirmPassword.Text = ""
-		s.ConfirmPassword.Refresh()
+		s.Password.SetText("")
+		s.ConfirmPassword.SetText("")
 	})
 }

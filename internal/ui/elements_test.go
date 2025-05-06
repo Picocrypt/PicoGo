@@ -148,7 +148,7 @@ func TestComments(t *testing.T) {
 	}
 
 	// Choosing deniability should disable comments
-	state.Deniability = true
+	state.Deniability.Checked = true
 	updates.Update()
 	if comments.Text != "" {
 		t.Errorf("Comments should be empty")
@@ -177,44 +177,6 @@ func TestComments(t *testing.T) {
 	}
 	if comments.PlaceHolder != "" {
 		t.Errorf("Comments should not have a placeholder")
-	}
-}
-
-func TestMakeSettingCheck(t *testing.T) {
-	state := State{}
-	updates := UpdateMethods{}
-	check := MakeSettingCheck("test-check", &state.ReedSolomon, &state, &updates)
-
-	updates.Update()
-	if check.Text != "test-check" {
-		t.Errorf("Text should match argument")
-	}
-
-	// Changing the check should update the state
-	if state.ReedSolomon {
-		t.Errorf("State should not be initialized with ReedSolomon")
-	}
-	check.SetChecked(true)
-	updates.Update()
-	if !state.ReedSolomon {
-		t.Errorf("State should be updated with ReedSolomon")
-	}
-	check.SetChecked(false)
-	updates.Update()
-	if state.ReedSolomon {
-		t.Errorf("State should be updated with ReedSolomon")
-	}
-
-	// Check correct disabling of the check
-	state.SetInput(MakeURI("test"))
-	updates.Update()
-	if check.Disabled() {
-		t.Errorf("Check should be enabled")
-	}
-	state.SetInput(MakeURI("test.pcv"))
-	updates.Update()
-	if !check.Disabled() {
-		t.Errorf("Check should be disabled")
 	}
 }
 

@@ -239,10 +239,10 @@ func encrypt(logger *ui.Logger, state *ui.State, win fyne.Window, app fyne.App) 
 		}
 		settings := encryption.Settings{
 			Comments:    state.Comments,
-			ReedSolomon: state.ReedSolomon,
-			Paranoid:    state.Paranoid,
-			OrderedKf:   state.OrderedKeyfiles,
-			Deniability: state.Deniability,
+			ReedSolomon: state.ReedSolomon.Checked,
+			Paranoid:    state.Paranoid.Checked,
+			OrderedKf:   state.OrderedKeyfiles.Checked,
+			Deniability: state.Deniability.Checked,
 		}
 		header, err := encryption.EncryptHeadless(
 			input, state.Password.Text, keyfiles, settings, headlessWriter, updateCh,
@@ -548,9 +548,6 @@ func main() {
 	)
 
 	// Advanced encryption settings
-	reedSolomonCheck := ui.MakeSettingCheck("Reed Solomon", &state.ReedSolomon, state, &updates)
-	paranoidCheck := ui.MakeSettingCheck("Paranoid", &state.Paranoid, state, &updates)
-	deniabilityCheck := ui.MakeSettingCheck("Deniability", &state.Deniability, state, &updates)
 	keyfileBtn := ui.MakeKeyfileBtn(&logger, state, &updates, w)
 	advanced_settings_row := container.New(
 		layout.NewStackLayout(),
@@ -562,9 +559,9 @@ func main() {
 				layout.NewGridLayoutWithColumns(2),
 				container.New(
 					layout.NewVBoxLayout(),
-					reedSolomonCheck,
-					paranoidCheck,
-					deniabilityCheck,
+					state.ReedSolomon,
+					state.Paranoid,
+					state.Deniability,
 				),
 				container.NewPadded(
 					container.New(

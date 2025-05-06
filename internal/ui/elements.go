@@ -133,60 +133,13 @@ func MakeFileName(state *State, updates *UpdateMethods) *widget.Entry {
 	return filename
 }
 
-func updateComments(entry *widget.Entry, binding binding.ExternalString, state *State) func() {
-	return func() {
-		shouldEnable := state.IsEncrypting() && !state.Deniability
-		placeholder := ""
-		if state.IsEncrypting() && state.Deniability {
-			placeholder = "Comments are disabled in deniability mode"
-			state.Comments = ""
-		} else if state.IsEncrypting() {
-			placeholder = "Comments are not encrypted"
-		}
-		binding.Reload()
-		refresh := false
-		if placeholder != entry.PlaceHolder {
-			entry.PlaceHolder = placeholder
-			refresh = true
-		}
-		if shouldEnable && entry.Disabled() {
-			entry.Enable()
-			refresh = true
-		}
-		if !shouldEnable && !entry.Disabled() {
-			entry.Disable()
-			refresh = true
-		}
-		if refresh {
-			entry.Refresh()
-		}
-	}
-}
-
 func MakeComments(state *State, updates *UpdateMethods) *widget.Entry {
 	comments := widget.NewMultiLineEntry()
 	binding := binding.BindString(&state.Comments)
 	comments.Bind(binding)
 	comments.Validator = nil
 	comments.Wrapping = fyne.TextWrapWord
-	updates.Add(updateComments(comments, binding, state))
 	return comments
-}
-
-func MakeSettingCheck(name string, b *bool, state *State, updates *UpdateMethods) *widget.Check {
-	binding := binding.BindBool(b)
-	check := widget.NewCheckWithData(name, binding)
-	updates.Add(func() {
-		binding.Reload()
-		if state.IsEncrypting() {
-			if check.Disabled() {
-				check.Enable()
-			}
-		} else if !check.Disabled() {
-			check.Disable()
-		}
-	})
-	return check
 }
 
 func keyfileText() *widget.Entry { // coverage-ignore
@@ -300,7 +253,7 @@ func MakeKeyfileBtn(logger *Logger, state *State, updates *UpdateMethods, window
 		textUpdate()
 		c := container.New(
 			layout.NewVBoxLayout(),
-			MakeSettingCheck("Require order", &state.OrderedKeyfiles, state, updates),
+			state.OrderedKeyfiles,
 			text,
 			container.New(
 				layout.NewHBoxLayout(),
