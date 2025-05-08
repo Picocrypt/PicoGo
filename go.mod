@@ -5,7 +5,7 @@ go 1.23.0
 toolchain go1.24.1
 
 require (
-	fyne.io/fyne/v2 v2.6.0
+	fyne.io/fyne/v2 v2.6.1
 	github.com/Picocrypt/infectious v0.0.0-20240830233326-3a050f65f9ec
 	github.com/Picocrypt/serpent v0.0.0-20240830233833-9ad6ab254fd7
 	github.com/jschauma/getpass v0.2.3
