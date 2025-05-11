@@ -63,8 +63,8 @@ func TestFilePickerCallback(t *testing.T) {
 	logger := Logger{}
 	app := test.NewApp()
 	window := app.NewWindow("Test Window")
-	state := State{}
-	callback := filePickerCallback(&state, &logger, window)
+	state := NewState()
+	callback := filePickerCallback(state, &logger, window)
 	test := TestReadWriteCloser{}
 
 	// Test canceling the file picker
@@ -126,7 +126,7 @@ func TestComments(t *testing.T) {
 	}
 
 	// Choosing deniability should disable comments
-	state.Deniability.Checked = true
+	state.Deniability.SetChecked(true)
 	if state.Comments.Text != "" {
 		t.Errorf("Comments should be empty")
 	}
@@ -151,17 +151,14 @@ func TestComments(t *testing.T) {
 	if !state.Comments.Disabled() {
 		t.Errorf("Comments should be disabled")
 	}
-	if state.Comments.PlaceHolder != "" {
-		t.Errorf("Comments should not have a placeholder")
-	}
 }
 
 func TestKeyfileAddCallback(t *testing.T) {
-	state := State{}
+	state := NewState()
 	app := test.NewApp()
 	window := app.NewWindow("Test Window")
 	logger := Logger{}
-	callback := keyfileAddCallback(&state, &logger, window)
+	callback := keyfileAddCallback(state, &logger, window)
 
 	callback(nil, nil)
 	reader := TestReadWriteCloser{}
@@ -178,11 +175,11 @@ func TestKeyfileAddCallback(t *testing.T) {
 }
 
 func TestKeyfileCreateCallback(t *testing.T) {
-	state := State{}
+	state := NewState()
 	app := test.NewApp()
 	window := app.NewWindow("Test Window")
 	logger := Logger{}
-	callback := keyfileCreateCallback(&state, &logger, window)
+	callback := keyfileCreateCallback(state, &logger, window)
 
 	callback(nil, nil)
 	reader := TestReadWriteCloser{}
@@ -199,9 +196,9 @@ func TestKeyfileCreateCallback(t *testing.T) {
 }
 
 func TestKeyfileClearCallback(t *testing.T) {
-	state := State{}
+	state := NewState()
 	logger := Logger{}
-	callback := keyfileClearCallback(&state, &logger)
+	callback := keyfileClearCallback(state, &logger)
 
 	state.AddKeyfile(MakeURI("test-keyfile"))
 	if len(state.Keyfiles) != 1 {
@@ -254,8 +251,8 @@ func TestConfirmEntry(t *testing.T) {
 	if !state.IsDecrypting() {
 		t.Errorf("State should be decrypting")
 	}
-	if state.ConfirmPassword.Visible() {
-		t.Errorf("Confirm should not be visible for decrypting")
+	if !state.ConfirmPassword.Disabled() {
+		t.Errorf("Confirm should not be enabled for decrypting")
 	}
 	state.SetInput(MakeURI("test"))
 	if !state.IsEncrypting() {

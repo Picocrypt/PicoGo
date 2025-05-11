@@ -115,58 +115,44 @@ func (s *State) SetInput(input fyne.URI) error {
 	s.Clear()
 	inputDesc := NewFileDesc(input)
 	s.input = &inputDesc
-	fyne.Do(func() { s.FileName.SetText(s.input.Name()) })
 
-	// Update work button
-	if s.IsEncrypting() {
-		fyne.Do(func() {
-			s.WorkBtn.Enable()
-		})
-		s.WorkBtn.SetText("Encrypt")
-	} else if s.IsDecrypting() {
-		fyne.Do(func() {
-			s.WorkBtn.Enable()
-			s.WorkBtn.SetText("Decrypt")
-		})
-	} else {
-		fyne.Do(func() {
-			s.WorkBtn.Disable()
-			s.WorkBtn.SetText("")
-		})
-	}
-
-	// Update checkboxes
-	fyne.Do(func() {
+	// Update visual elements
+	fyne.DoAndWait(func() {
 		boxes := []*widget.Check{
 			s.ReedSolomon,
 			s.Deniability,
 			s.Paranoid,
 			s.OrderedKeyfiles,
 		}
+
+		s.FileName.SetText(s.input.Name())
+		s.updateComments()
+
 		if s.IsEncrypting() {
+			s.WorkBtn.Enable()
+			s.WorkBtn.SetText("Encrypt")
 			for _, box := range boxes {
 				box.Enable()
 				box.Refresh()
 			}
+			s.ConfirmPassword.SetPlaceHolder("Confirm password")
+			s.ConfirmPassword.Enable()
+			s.Comments.Enable()
+		} else if s.IsDecrypting() {
+			s.WorkBtn.Enable()
+			s.WorkBtn.SetText("Decrypt")
+			s.ConfirmPassword.SetText("")
+			s.ConfirmPassword.SetPlaceHolder("Not required")
+			s.ConfirmPassword.Disable()
+			s.Comments.Disable()
 		} else {
-			for _, box := range boxes {
-				box.Disable()
-				box.Refresh()
-			}
+			s.WorkBtn.Disable()
+			s.WorkBtn.SetText("")
+			s.ConfirmPassword.SetPlaceHolder("Not required")
+			s.ConfirmPassword.Disable()
+			s.Comments.Disable()
 		}
-		s.updateComments()
 	})
-
-	// Update Confirm field visibility
-	if s.IsEncrypting() {
-		if s.ConfirmPassword.Hidden {
-			fyne.Do(func() { s.ConfirmPassword.Show() })
-		}
-	} else {
-		if !s.ConfirmPassword.Hidden {
-			fyne.Do(func() { s.ConfirmPassword.Hide() })
-		}
-	}
 
 	if s.IsDecrypting() {
 		reader, err := storage.Reader(input)
@@ -180,7 +166,7 @@ func (s *State) SetInput(input fyne.URI) error {
 		if err != nil {
 			return fmt.Errorf("failed to get encryption settings: %w", err)
 		}
-		fyne.Do(func() {
+		fyne.DoAndWait(func() {
 			s.Comments.SetText(settings.Comments)
 			s.ReedSolomon.SetChecked(settings.ReedSolomon)
 			s.Deniability.SetChecked(settings.Deniability)
