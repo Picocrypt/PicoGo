@@ -2,7 +2,6 @@ package ui
 
 import (
 	"fmt"
-	"log"
 	"strings"
 	"sync"
 
@@ -113,11 +112,10 @@ func (s *State) IsDecrypting() bool {
 }
 
 func (s *State) SetInput(input fyne.URI) error {
-	log.Println("Set input to", input)
 	s.Clear()
 	inputDesc := NewFileDesc(input)
 	s.input = &inputDesc
-	fyne.Do(func() { s.FileName.SetText(inputDesc.Name()) })
+	fyne.Do(func() { s.FileName.SetText(s.input.Name()) })
 
 	// Update work button
 	if s.IsEncrypting() {
@@ -210,16 +208,16 @@ func (s *State) ClearKeyfiles() {
 }
 
 func (s *State) Clear() {
+	s.input = nil
+	s.SaveAs = nil
+	s.Keyfiles = nil
 	fyne.Do(func() {
 		s.FileName.SetText("")
-		s.input = nil
-		s.SaveAs = nil
 		s.Comments.SetText("")
 		s.ReedSolomon.SetChecked(false)
 		s.Deniability.SetChecked(false)
 		s.Paranoid.SetChecked(false)
 		s.OrderedKeyfiles.SetChecked(false)
-		s.Keyfiles = nil
 		s.Password.SetText("")
 		s.ConfirmPassword.SetText("")
 	})

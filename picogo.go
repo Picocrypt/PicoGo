@@ -96,7 +96,7 @@ func clearOutputFile(app fyne.App) error {
 	return clearFile(outputURI)
 }
 
-func chooseSaveAs(logger *ui.Logger, state *ui.State, window fyne.Window) {
+func chooseSaveAs(logger *ui.Logger, state *ui.State, window fyne.Window, app fyne.App) {
 	d := dialog.NewFileSave(func(writer fyne.URIWriteCloser, err error) {
 		if writer != nil {
 			defer writer.Close()
@@ -110,6 +110,9 @@ func chooseSaveAs(logger *ui.Logger, state *ui.State, window fyne.Window) {
 			saveAs := ui.NewFileDesc(writer.URI())
 			state.SaveAs = &saveAs
 			logger.Log("Chose where to save output", *state, nil)
+			go func() {
+				saveOutput(logger, state, window, app)
+			}()
 		} else {
 			logger.Log("Canceled choosing where to save output", *state, nil)
 		}
@@ -128,9 +131,6 @@ func chooseSaveAs(logger *ui.Logger, state *ui.State, window fyne.Window) {
 }
 
 func saveOutput(logger *ui.Logger, state *ui.State, window fyne.Window, app fyne.App) {
-	if state.SaveAs == nil {
-		return
-	}
 	defer func() { state.SaveAs = nil }()
 	outputURI, err := getOutputURI(app)
 	if err != nil {
@@ -168,13 +168,13 @@ func saveOutput(logger *ui.Logger, state *ui.State, window fyne.Window, app fyne
 		container.New(layout.NewVBoxLayout(), widget.NewProgressBarInfinite()),
 		window,
 	)
-	d.Show()
+	fyne.Do(d.Show)
 
 	// Block until completion
 	for {
 		select {
 		case err := <-errCh:
-			d.Hide()
+			fyne.Do(d.Hide)
 			if err != nil {
 				logger.Log("Saving output", *state, err)
 				dialog.ShowError(fmt.Errorf("copying output: %w", err), window)
@@ -184,6 +184,7 @@ func saveOutput(logger *ui.Logger, state *ui.State, window fyne.Window, app fyne
 				logger.Log("Clearing output file", *state, err)
 				dialog.ShowError(fmt.Errorf("cleaning tmp file: %w", err), window)
 			}
+			state.Clear()
 			return
 		default:
 			time.Sleep(time.Second / 10)
@@ -326,7 +327,7 @@ func encrypt(logger *ui.Logger, state *ui.State, win fyne.Window, app fyne.App) 
 			text,
 			func(b bool) {
 				if b {
-					chooseSaveAs(logger, state, win)
+					chooseSaveAs(logger, state, win, app)
 				}
 			},
 			win,
@@ -484,7 +485,7 @@ func decrypt(logger *ui.Logger, state *ui.State, win fyne.Window, app fyne.App) 
 			text,
 			func(b bool) {
 				if b {
-					chooseSaveAs(logger, state, win)
+					chooseSaveAs(logger, state, win, app)
 				}
 			},
 			win,
@@ -629,10 +630,6 @@ func main() {
 
 	updates.Add(func() {
 		developmentWarning(w)
-	})
-
-	updates.Add(func() {
-		saveOutput(&logger, state, w, a)
 	})
 
 	go func() {
