@@ -4,31 +4,12 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
-	"strconv"
-	"strings"
 
 	"fyne.io/fyne/v2"
-	"fyne.io/fyne/v2/container"
-	"fyne.io/fyne/v2/data/binding"
 	"fyne.io/fyne/v2/dialog"
-	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 )
-
-type UpdateMethods struct {
-	funcs []func()
-}
-
-func (u *UpdateMethods) Add(f func()) {
-	u.funcs = append(u.funcs, f)
-}
-
-func (u *UpdateMethods) Update() {
-	for _, f := range u.funcs {
-		f()
-	}
-}
 
 func MakeInfoBtn(w fyne.Window) *widget.Button { // coverage-ignore
 	btn := widget.NewButtonWithIcon("", theme.InfoIcon(), func() {
@@ -125,68 +106,11 @@ func filenameUpdate(entry *widget.Entry, state *State) func() {
 	}
 }
 
-func MakeFileName(state *State, updates *UpdateMethods) *widget.Entry {
-	filename := widget.NewEntry()
-	filename.Disable()
-	filename.SetPlaceHolder("No file chosen")
-	updates.Add(filenameUpdate(filename, state))
-	return filename
-}
-
-func updateComments(entry *widget.Entry, binding binding.ExternalString, state *State) func() {
-	return func() {
-		shouldEnable := state.IsEncrypting() && !state.Deniability
-		placeholder := ""
-		if state.IsEncrypting() && state.Deniability {
-			placeholder = "Comments are disabled in deniability mode"
-			state.Comments = ""
-		} else if state.IsEncrypting() {
-			placeholder = "Comments are not encrypted"
-		}
-		binding.Reload()
-		refresh := false
-		if placeholder != entry.PlaceHolder {
-			entry.PlaceHolder = placeholder
-			refresh = true
-		}
-		if shouldEnable && entry.Disabled() {
-			entry.Enable()
-			refresh = true
-		}
-		if !shouldEnable && !entry.Disabled() {
-			entry.Disable()
-			refresh = true
-		}
-		if refresh {
-			entry.Refresh()
-		}
-	}
-}
-
-func MakeComments(state *State, updates *UpdateMethods) *widget.Entry {
+func makeComments() *widget.Entry {
 	comments := widget.NewMultiLineEntry()
-	binding := binding.BindString(&state.Comments)
-	comments.Bind(binding)
 	comments.Validator = nil
 	comments.Wrapping = fyne.TextWrapWord
-	updates.Add(updateComments(comments, binding, state))
 	return comments
-}
-
-func MakeSettingCheck(name string, b *bool, state *State, updates *UpdateMethods) *widget.Check {
-	binding := binding.BindBool(b)
-	check := widget.NewCheckWithData(name, binding)
-	updates.Add(func() {
-		binding.Reload()
-		if state.IsEncrypting() {
-			if check.Disabled() {
-				check.Enable()
-			}
-		} else if !check.Disabled() {
-			check.Disable()
-		}
-	})
-	return check
 }
 
 func keyfileText() *widget.Entry { // coverage-ignore
@@ -196,9 +120,8 @@ func keyfileText() *widget.Entry { // coverage-ignore
 	return text
 }
 
-func keyfileAddCallback(state *State, logger *Logger, window fyne.Window, textUpdate func()) func(fyne.URIReadCloser, error) {
+func keyfileAddCallback(state *State, logger *Logger, window fyne.Window) func(fyne.URIReadCloser, error) {
 	return func(reader fyne.URIReadCloser, err error) {
-		defer textUpdate()
 		if reader != nil {
 			defer reader.Close()
 		}
@@ -216,17 +139,16 @@ func keyfileAddCallback(state *State, logger *Logger, window fyne.Window, textUp
 	}
 }
 
-func keyfileAddBtn(state *State, logger *Logger, window fyne.Window, textUpdate func()) *widget.Button { // coverage-ignore
+func KeyfileAddBtn(state *State, logger *Logger, window fyne.Window) *widget.Button { // coverage-ignore
 	btn := widget.NewButtonWithIcon("Add", theme.ContentAddIcon(), func() {
-		fd := dialog.NewFileOpen(keyfileAddCallback(state, logger, window, textUpdate), window)
+		fd := dialog.NewFileOpen(keyfileAddCallback(state, logger, window), window)
 		fd.Show()
 	})
 	return btn
 }
 
-func keyfileCreateCallback(state *State, logger *Logger, window fyne.Window, textUpdate func()) func(fyne.URIWriteCloser, error) {
+func keyfileCreateCallback(state *State, logger *Logger, window fyne.Window) func(fyne.URIWriteCloser, error) {
 	return func(writer fyne.URIWriteCloser, err error) {
-		defer textUpdate()
 		if writer != nil {
 			defer writer.Close()
 		}
@@ -257,116 +179,42 @@ func keyfileCreateCallback(state *State, logger *Logger, window fyne.Window, tex
 	}
 }
 
-func keyfileCreateBtn(state *State, logger *Logger, window fyne.Window, textUpdate func()) *widget.Button { // coverage-ignore
+func KeyfileCreateBtn(state *State, logger *Logger, window fyne.Window) *widget.Button { // coverage-ignore
 	btn := widget.NewButtonWithIcon("Create", theme.ContentAddIcon(), func() {
-		fd := dialog.NewFileSave(keyfileCreateCallback(state, logger, window, textUpdate), window)
+		fd := dialog.NewFileSave(keyfileCreateCallback(state, logger, window), window)
 		fd.SetFileName("Keyfile")
 		fd.Show()
 	})
 	return btn
 }
 
-func keyfileClearCallback(state *State, logger *Logger, textUpdate func()) func() {
+func keyfileClearCallback(state *State, logger *Logger) func() {
 	return func() {
-		defer textUpdate()
 		logger.Log("Clearing keyfiles", *state, nil)
-		state.Keyfiles = state.Keyfiles[:0]
+		state.ClearKeyfiles()
 	}
 }
 
-func keyfileClearBtn(state *State, logger *Logger, textUpdate func()) *widget.Button { // coverage-ignore
-	btn := widget.NewButtonWithIcon("Clear", theme.ContentClearIcon(), keyfileClearCallback(state, logger, textUpdate))
+func KeyfileClearBtn(state *State, logger *Logger) *widget.Button { // coverage-ignore
+	btn := widget.NewButtonWithIcon("Clear", theme.ContentClearIcon(), keyfileClearCallback(state, logger))
 	return btn
 }
 
-func keyfileTextUpdate(state *State, text *widget.Entry) func() {
-	return func() {
-		names := []string{}
-		for _, kf := range state.Keyfiles {
-			names = append(names, kf.Name())
-		}
-		msg := strings.Join(names, "\n")
-		if text.Text != msg {
-			text.Text = msg
-			text.Refresh()
-		}
-	}
-}
-
-func MakeKeyfileBtn(logger *Logger, state *State, updates *UpdateMethods, window fyne.Window) *widget.Button { // coverage-ignore
-	btn := widget.NewButtonWithIcon("Keyfile", theme.ContentAddIcon(), func() {
-		text := keyfileText()
-		textUpdate := keyfileTextUpdate(state, text)
-		textUpdate()
-		c := container.New(
-			layout.NewVBoxLayout(),
-			MakeSettingCheck("Require order", &state.OrderedKeyfiles, state, updates),
-			text,
-			container.New(
-				layout.NewHBoxLayout(),
-				keyfileAddBtn(state, logger, window, textUpdate),
-				keyfileCreateBtn(state, logger, window, textUpdate),
-				keyfileClearBtn(state, logger, textUpdate),
-			),
-		)
-		dialog.ShowCustom("Keyfiles", "Done", c, window)
-	})
-	updates.Add(func() {
-		btnName := "Keyfiles [" + strconv.Itoa(len(state.Keyfiles)) + "]"
-		if btn.Text != btnName {
-			btn.Text = btnName
-			btn.Refresh()
-		}
-		shouldEnable := state.IsEncrypting() || state.IsDecrypting()
-		if shouldEnable && btn.Disabled() {
-			btn.Enable()
-		}
-		if !shouldEnable && !btn.Disabled() {
-			btn.Disable()
-		}
-	})
-	return btn
-}
-
-func MakePassword(state *State, updates *UpdateMethods) *widget.Entry {
+func makePassword() *widget.Entry {
 	password := widget.NewPasswordEntry()
 	password.SetPlaceHolder("Password")
-	binding := binding.BindString(&state.Password)
-	password.Bind(binding)
 	password.Validator = nil
-	updates.Add(func() {
-		binding.Reload()
-		if state.IsDecrypting() || state.IsEncrypting() {
-			if password.Disabled() {
-				password.Enable()
-			}
-		} else if !password.Disabled() {
-			password.Disable()
-		}
-	})
 	return password
 }
 
-func MakeConfirmPassword(state *State, updates *UpdateMethods) *widget.Entry {
+func makeConfirmPassword() *widget.Entry {
 	confirm := widget.NewPasswordEntry()
 	confirm.SetPlaceHolder("Confirm password")
-	binding := binding.BindString(&state.ConfirmPassword)
-	confirm.Bind(binding)
 	confirm.Validator = nil
-	updates.Add(func() {
-		binding.Reload()
-		if state.IsEncrypting() {
-			if !confirm.Visible() {
-				confirm.Show()
-			}
-		} else if confirm.Visible() {
-			confirm.Hide()
-		}
-	})
 	return confirm
 }
 
-func workBtnCallback(state *State, logger *Logger, w fyne.Window, encrypt func(), decrypt func()) func() {
+func WorkBtnCallback(state *State, logger *Logger, w fyne.Window, encrypt func(), decrypt func()) func() {
 	return func() {
 		if !(state.IsEncrypting() || state.IsDecrypting()) {
 			// This should never happen (the button should be hidden), but check in case
@@ -376,10 +224,10 @@ func workBtnCallback(state *State, logger *Logger, w fyne.Window, encrypt func()
 			return
 		}
 		if state.IsEncrypting() {
-			if state.Password != state.ConfirmPassword {
+			if state.Password.Text != state.ConfirmPassword.Text {
 				logger.Log("Encrypt/Decrypt button pressed", *state, errors.New("passwords do not match"))
 				dialog.ShowError(errors.New("passwords do not match"), w)
-			} else if state.Password == "" {
+			} else if state.Password.Text == "" {
 				logger.Log("Encrypt/Decrypt button pressed", *state, errors.New("password cannot be blank"))
 				dialog.ShowError(errors.New("password cannot be blank"), w)
 			} else {
@@ -391,29 +239,4 @@ func workBtnCallback(state *State, logger *Logger, w fyne.Window, encrypt func()
 		logger.Log("Encrypt/Decrypt button pressed (decrypting)", *state, nil)
 		decrypt()
 	}
-}
-
-func MakeWorkBtn(logger *Logger, state *State, w fyne.Window, encrypt func(), decrypt func(), updates *UpdateMethods) *widget.Button {
-	workBtn := widget.NewButton("Encrypt/Decrypt", func() {
-		workBtnCallback(state, logger, w, encrypt, decrypt)()
-	})
-	updates.Add(func() {
-		text := ""
-		if state.IsEncrypting() {
-			text = "Encrypt"
-		} else if state.IsDecrypting() {
-			text = "Decrypt"
-		}
-		if workBtn.Text != text {
-			workBtn.Text = text
-			workBtn.Refresh()
-		}
-		if text == "" && workBtn.Visible() {
-			workBtn.Hide()
-		}
-		if text != "" && !workBtn.Visible() {
-			workBtn.Show()
-		}
-	})
-	return workBtn
 }

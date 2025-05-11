@@ -96,7 +96,7 @@ func clearOutputFile(app fyne.App) error {
 	return clearFile(outputURI)
 }
 
-func chooseSaveAs(logger *ui.Logger, state *ui.State, window fyne.Window) {
+func chooseSaveAs(logger *ui.Logger, state *ui.State, window fyne.Window, app fyne.App) {
 	d := dialog.NewFileSave(func(writer fyne.URIWriteCloser, err error) {
 		if writer != nil {
 			defer writer.Close()
@@ -110,6 +110,9 @@ func chooseSaveAs(logger *ui.Logger, state *ui.State, window fyne.Window) {
 			saveAs := ui.NewFileDesc(writer.URI())
 			state.SaveAs = &saveAs
 			logger.Log("Chose where to save output", *state, nil)
+			go func() {
+				saveOutput(logger, state, window, app)
+			}()
 		} else {
 			logger.Log("Canceled choosing where to save output", *state, nil)
 		}
@@ -128,9 +131,6 @@ func chooseSaveAs(logger *ui.Logger, state *ui.State, window fyne.Window) {
 }
 
 func saveOutput(logger *ui.Logger, state *ui.State, window fyne.Window, app fyne.App) {
-	if state.SaveAs == nil {
-		return
-	}
 	defer func() { state.SaveAs = nil }()
 	outputURI, err := getOutputURI(app)
 	if err != nil {
@@ -168,13 +168,13 @@ func saveOutput(logger *ui.Logger, state *ui.State, window fyne.Window, app fyne
 		container.New(layout.NewVBoxLayout(), widget.NewProgressBarInfinite()),
 		window,
 	)
-	d.Show()
+	fyne.Do(d.Show)
 
 	// Block until completion
 	for {
 		select {
 		case err := <-errCh:
-			d.Hide()
+			fyne.Do(d.Hide)
 			if err != nil {
 				logger.Log("Saving output", *state, err)
 				dialog.ShowError(fmt.Errorf("copying output: %w", err), window)
@@ -184,6 +184,7 @@ func saveOutput(logger *ui.Logger, state *ui.State, window fyne.Window, app fyne
 				logger.Log("Clearing output file", *state, err)
 				dialog.ShowError(fmt.Errorf("cleaning tmp file: %w", err), window)
 			}
+			state.Clear()
 			return
 		default:
 			time.Sleep(time.Second / 10)
@@ -238,14 +239,14 @@ func encrypt(logger *ui.Logger, state *ui.State, win fyne.Window, app fyne.App) 
 			keyfiles = append(keyfiles, r)
 		}
 		settings := encryption.Settings{
-			Comments:    state.Comments,
-			ReedSolomon: state.ReedSolomon,
-			Paranoid:    state.Paranoid,
-			OrderedKf:   state.OrderedKeyfiles,
-			Deniability: state.Deniability,
+			Comments:    state.Comments.Text,
+			ReedSolomon: state.ReedSolomon.Checked,
+			Paranoid:    state.Paranoid.Checked,
+			OrderedKf:   state.OrderedKeyfiles.Checked,
+			Deniability: state.Deniability.Checked,
 		}
 		header, err := encryption.EncryptHeadless(
-			input, state.Password, keyfiles, settings, headlessWriter, updateCh,
+			input, state.Password.Text, keyfiles, settings, headlessWriter, updateCh,
 		)
 		if err != nil {
 			logger.Log("Encrypt headless", *state, err)
@@ -326,7 +327,7 @@ func encrypt(logger *ui.Logger, state *ui.State, win fyne.Window, app fyne.App) 
 			text,
 			func(b bool) {
 				if b {
-					chooseSaveAs(logger, state, win)
+					chooseSaveAs(logger, state, win, app)
 				}
 			},
 			win,
@@ -378,7 +379,7 @@ func tryDecrypt(
 	})
 	go func() {
 		logger.Log("Decryption routine start", *state, nil)
-		damaged, err := encryption.Decrypt(state.Password, keyfiles, input, output, recoveryMode, updateCh)
+		damaged, err := encryption.Decrypt(state.Password.Text, keyfiles, input, output, recoveryMode, updateCh)
 		errCh <- struct {
 			bool
 			error
@@ -484,7 +485,7 @@ func decrypt(logger *ui.Logger, state *ui.State, win fyne.Window, app fyne.App) 
 			text,
 			func(b bool) {
 				if b {
-					chooseSaveAs(logger, state, win)
+					chooseSaveAs(logger, state, win, app)
 				}
 			},
 			win,
@@ -519,11 +520,10 @@ func main() {
 	a := app.New()
 	a.Settings().SetTheme(&myTheme{})
 	w := a.NewWindow("PicoGo")
-	state := ui.State{}
-	updates := ui.UpdateMethods{}
+	state := ui.NewState()
 
 	logger := ui.Logger{}
-	logger.Log("Starting PicoGo", state, nil)
+	logger.Log("Starting PicoGo", *state, nil)
 
 	infoBtn := ui.MakeInfoBtn(w)
 	logBtn := ui.MakeLogBtn(&logger, w)
@@ -534,42 +534,60 @@ func main() {
 		layout.NewSpacer(),
 	)
 
-	picker := ui.MakeFilePicker(&state, &logger, w)
-	filename := ui.MakeFileName(&state, &updates)
-	comments := ui.MakeComments(&state, &updates)
+	picker := ui.MakeFilePicker(state, &logger, w)
 	file_row := container.New(
 		layout.NewStackLayout(),
 		border(),
 		container.New(
 			layout.NewFormLayout(),
-			widget.NewLabel("File"), container.NewPadded(container.NewPadded(filename)),
-			widget.NewLabel("Comments"), container.NewPadded(container.NewPadded(comments)),
+			widget.NewLabel("File"), container.NewPadded(container.NewPadded(state.FileName)),
+			widget.NewLabel("Comments"), container.NewPadded(container.NewPadded(state.Comments)),
 		),
 	)
 
 	// Advanced encryption settings
-	reedSolomonCheck := ui.MakeSettingCheck("Reed Solomon", &state.ReedSolomon, &state, &updates)
-	paranoidCheck := ui.MakeSettingCheck("Paranoid", &state.Paranoid, &state, &updates)
-	deniabilityCheck := ui.MakeSettingCheck("Deniability", &state.Deniability, &state, &updates)
-	keyfileBtn := ui.MakeKeyfileBtn(&logger, &state, &updates, w)
 	advanced_settings_row := container.New(
 		layout.NewStackLayout(),
 		border(),
 		container.New(
 			layout.NewVBoxLayout(),
-			widget.NewRichTextFromMarkdown("### Advanced Settings"),
 			container.New(
-				layout.NewGridLayoutWithColumns(2),
+				layout.NewVBoxLayout(),
+				widget.NewRichTextFromMarkdown("### Settings"),
 				container.New(
-					layout.NewVBoxLayout(),
-					reedSolomonCheck,
-					paranoidCheck,
-					deniabilityCheck,
+					layout.NewHBoxLayout(),
+					state.ReedSolomon,
+					state.Paranoid,
+					state.Deniability,
 				),
+			),
+		),
+	)
+	keyfiles := container.New(
+		layout.NewStackLayout(),
+		border(),
+		container.NewPadded(
+			container.New(
+				layout.NewVBoxLayout(),
+				widget.NewRichTextFromMarkdown("### Keyfiles"),
 				container.NewPadded(
-					container.New(
-						layout.NewVBoxLayout(),
-						keyfileBtn,
+					container.NewBorder(
+						nil,
+						nil,
+						container.New(
+							layout.NewVBoxLayout(),
+							ui.KeyfileAddBtn(state, &logger, w),
+							ui.KeyfileCreateBtn(state, &logger, w),
+							ui.KeyfileClearBtn(state, &logger),
+						),
+						nil,
+						container.NewPadded(
+							container.New(
+								layout.NewVBoxLayout(),
+								state.OrderedKeyfiles,
+								state.KeyfileText,
+							),
+						),
 					),
 				),
 			),
@@ -582,19 +600,18 @@ func main() {
 		container.NewPadded(container.NewPadded(
 			container.New(
 				layout.NewVBoxLayout(),
-				ui.MakePassword(&state, &updates),
-				ui.MakeConfirmPassword(&state, &updates),
+				state.Password,
+				state.ConfirmPassword,
 			),
 		)),
 	)
 
-	workBtn := ui.MakeWorkBtn(
+	state.WorkBtn.OnTapped = ui.WorkBtnCallback(
+		state,
 		&logger,
-		&state,
 		w,
-		func() { go func() { encrypt(&logger, &state, w, a) }() },
-		func() { go func() { decrypt(&logger, &state, w, a) }() },
-		&updates,
+		func() { go func() { encrypt(&logger, state, w, a) }() },
+		func() { go func() { decrypt(&logger, state, w, a) }() },
 	)
 
 	w.SetContent(
@@ -604,24 +621,12 @@ func main() {
 			picker,
 			file_row,
 			advanced_settings_row,
+			keyfiles,
 			passwordRow,
-			workBtn,
+			state.WorkBtn,
 		),
 	)
 
-	updates.Add(func() {
-		developmentWarning(w)
-	})
-
-	updates.Add(func() {
-		saveOutput(&logger, &state, w, a)
-	})
-
-	go func() {
-		for {
-			fyne.Do(updates.Update)
-			time.Sleep(time.Second / 10)
-		}
-	}()
+	fyne.Do(func() { developmentWarning(w) })
 	w.ShowAndRun()
 }
