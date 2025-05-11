@@ -228,7 +228,7 @@ func makeConfirmPassword() *widget.Entry {
 	return confirm
 }
 
-func workBtnCallback(state *State, logger *Logger, w fyne.Window, encrypt func(), decrypt func()) func() {
+func WorkBtnCallback(state *State, logger *Logger, w fyne.Window, encrypt func(), decrypt func()) func() {
 	return func() {
 		if !(state.IsEncrypting() || state.IsDecrypting()) {
 			// This should never happen (the button should be hidden), but check in case
@@ -253,29 +253,4 @@ func workBtnCallback(state *State, logger *Logger, w fyne.Window, encrypt func()
 		logger.Log("Encrypt/Decrypt button pressed (decrypting)", *state, nil)
 		decrypt()
 	}
-}
-
-func MakeWorkBtn(logger *Logger, state *State, w fyne.Window, encrypt func(), decrypt func(), updates *UpdateMethods) *widget.Button {
-	workBtn := widget.NewButton("Encrypt/Decrypt", func() {
-		workBtnCallback(state, logger, w, encrypt, decrypt)()
-	})
-	updates.Add(func() {
-		text := ""
-		if state.IsEncrypting() {
-			text = "Encrypt"
-		} else if state.IsDecrypting() {
-			text = "Decrypt"
-		}
-		if workBtn.Text != text {
-			workBtn.Text = text
-			workBtn.Refresh()
-		}
-		if text == "" && workBtn.Visible() {
-			workBtn.Hide()
-		}
-		if text != "" && !workBtn.Visible() {
-			workBtn.Show()
-		}
-	})
-	return workBtn
 }

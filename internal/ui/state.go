@@ -60,6 +60,7 @@ type State struct {
 	KeyfileText     *widget.Entry
 	Password        *widget.Entry
 	ConfirmPassword *widget.Entry
+	WorkBtn         *widget.Button
 }
 
 func NewState() *State {
@@ -76,6 +77,7 @@ func NewState() *State {
 		KeyfileText:     keyfileText(),
 		Password:        makePassword(),
 		ConfirmPassword: makeConfirmPassword(),
+		WorkBtn:         widget.NewButton("Encrypt", nil),
 	}
 	state.Deniability.OnChanged = func(checked bool) { state.updateComments() }
 	return &state
@@ -116,6 +118,24 @@ func (s *State) SetInput(input fyne.URI) error {
 	inputDesc := NewFileDesc(input)
 	s.input = &inputDesc
 	fyne.Do(func() { s.FileName.SetText(inputDesc.Name()) })
+
+	// Update work button
+	if s.IsEncrypting() {
+		fyne.Do(func() {
+			s.WorkBtn.Enable()
+		})
+		s.WorkBtn.SetText("Encrypt")
+	} else if s.IsDecrypting() {
+		fyne.Do(func() {
+			s.WorkBtn.Enable()
+			s.WorkBtn.SetText("Decrypt")
+		})
+	} else {
+		fyne.Do(func() {
+			s.WorkBtn.Disable()
+			s.WorkBtn.SetText("")
+		})
+	}
 
 	// Update checkboxes
 	fyne.Do(func() {

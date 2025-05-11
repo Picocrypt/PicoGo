@@ -268,7 +268,6 @@ func TestConfirmEntry(t *testing.T) {
 
 func TestWorkBtn(t *testing.T) {
 	state := NewState()
-	updates := UpdateMethods{}
 	logger := Logger{}
 	app := test.NewApp()
 	window := app.NewWindow("Test Window")
@@ -280,58 +279,45 @@ func TestWorkBtn(t *testing.T) {
 	decrypt := func() {
 		decryptCalled = true
 	}
-	workBtn := MakeWorkBtn(&logger, state, window, encrypt, decrypt, &updates)
-
-	// Work button should start hidden
-	updates.Update()
-	if workBtn.Visible() {
-		t.Errorf("Work button should not be visible")
-	}
-	// Tapping should do nothing
-	test.Tap(workBtn)
-	if encryptCalled || decryptCalled {
-		t.Errorf("Encrypt or decrypt should not be called")
-	}
+	state.WorkBtn.OnTapped = WorkBtnCallback(state, &logger, window, encrypt, decrypt)
 
 	// Set state to encrypting
 	state.SetInput(MakeURI("test"))
-	updates.Update()
-	if !workBtn.Visible() {
-		t.Errorf("Work button should be visible")
+	if state.WorkBtn.Disabled() {
+		t.Errorf("Work button should be enabled")
 	}
-	if workBtn.Text != "Encrypt" {
+	if state.WorkBtn.Text != "Encrypt" {
 		t.Errorf("Work button should say 'Encrypt'")
 	}
 
 	// Test mismatched passwords
 	state.Password.Text = "test-password"
 	state.ConfirmPassword.Text = "test-confirm"
-	test.Tap(workBtn)
+	test.Tap(state.WorkBtn)
 	if encryptCalled || decryptCalled {
 		t.Errorf("Encrypt or decrypt should not be called")
 	}
 
 	// Match passwords
 	state.ConfirmPassword.Text = "test-password"
-	test.Tap(workBtn)
+	test.Tap(state.WorkBtn)
 	if !encryptCalled || decryptCalled {
 		t.Errorf("Only encrypt should be called")
 	}
 
 	// Set state to decrypting
 	state.SetInput(MakeURI("test.pcv"))
-	updates.Update()
-	if !workBtn.Visible() {
+	if state.WorkBtn.Disabled() {
 		t.Errorf("Work button should be visible")
 	}
-	if workBtn.Text != "Decrypt" {
+	if state.WorkBtn.Text != "Decrypt" {
 		t.Errorf("Work button should say 'Decrypt'")
 	}
 
 	// Test decrypting
 	encryptCalled = false
 	decryptCalled = false
-	test.Tap(workBtn)
+	test.Tap(state.WorkBtn)
 	if encryptCalled || !decryptCalled {
 		t.Errorf("Only decrypt should be called")
 	}

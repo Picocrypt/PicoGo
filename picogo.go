@@ -606,13 +606,12 @@ func main() {
 		)),
 	)
 
-	workBtn := ui.MakeWorkBtn(
-		&logger,
+	state.WorkBtn.OnTapped = ui.WorkBtnCallback(
 		state,
+		&logger,
 		w,
 		func() { go func() { encrypt(&logger, state, w, a) }() },
 		func() { go func() { decrypt(&logger, state, w, a) }() },
-		&updates,
 	)
 
 	w.SetContent(
@@ -624,7 +623,7 @@ func main() {
 			advanced_settings_row,
 			keyfiles,
 			passwordRow,
-			workBtn,
+			state.WorkBtn,
 		),
 	)
 
