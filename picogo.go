@@ -521,7 +521,6 @@ func main() {
 	a.Settings().SetTheme(&myTheme{})
 	w := a.NewWindow("PicoGo")
 	state := ui.NewState()
-	updates := ui.UpdateMethods{}
 
 	logger := ui.Logger{}
 	logger.Log("Starting PicoGo", *state, nil)
@@ -628,15 +627,6 @@ func main() {
 		),
 	)
 
-	updates.Add(func() {
-		developmentWarning(w)
-	})
-
-	go func() {
-		for {
-			fyne.Do(updates.Update)
-			time.Sleep(time.Second / 10)
-		}
-	}()
+	fyne.Do(func() { developmentWarning(w) })
 	w.ShowAndRun()
 }

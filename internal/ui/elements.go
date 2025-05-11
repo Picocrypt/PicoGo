@@ -11,20 +11,6 @@ import (
 	"fyne.io/fyne/v2/widget"
 )
 
-type UpdateMethods struct {
-	funcs []func()
-}
-
-func (u *UpdateMethods) Add(f func()) {
-	u.funcs = append(u.funcs, f)
-}
-
-func (u *UpdateMethods) Update() {
-	for _, f := range u.funcs {
-		f()
-	}
-}
-
 func MakeInfoBtn(w fyne.Window) *widget.Button { // coverage-ignore
 	btn := widget.NewButtonWithIcon("", theme.InfoIcon(), func() {
 		title := "PicoGo " + PicoGoVersion
