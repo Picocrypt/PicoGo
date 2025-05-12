@@ -303,7 +303,10 @@ func TestWorkBtn(t *testing.T) {
 	}
 
 	// Set state to decrypting
-	state.SetInput(MakeURI("test.pcv"))
+	err := state.SetInput(MakeURI("test.pcv"))
+	if err != nil {
+		t.Errorf("Error setting input: %v", err)
+	}
 	if state.WorkBtn.Disabled() {
 		t.Errorf("Work button should be visible")
 	}
