@@ -135,48 +135,54 @@ func (s *State) SetInput(input fyne.URI) error {
 		}
 	}
 
-	fyne.DoAndWait(func() {
-		s.FileName.SetText(s.input.Name())
+	s.FileName.SetText(s.input.Name())
 
-		s.Comments.SetText(settings.Comments)
-		if s.IsEncrypting() {
-			if settings.Deniability {
-				s.Comments.SetText("")
-				s.Comments.SetPlaceHolder("Comments are disabled in deniability mode")
-				s.Comments.Disable()
-			} else {
-				s.Comments.SetPlaceHolder("Comments are not encrypted")
-				s.Comments.Enable()
-			}
-		} else {
-			s.Comments.SetPlaceHolder("")
-			s.Comments.SetPlaceHolder("")
+	s.Comments.SetText(settings.Comments)
+	if s.IsEncrypting() {
+		if settings.Deniability {
+			s.Comments.SetText("")
+			s.Comments.SetPlaceHolder("Comments are disabled in deniability mode")
 			s.Comments.Disable()
-		}
-
-		s.ReedSolomon.SetChecked(settings.ReedSolomon)
-		s.Deniability.SetChecked(settings.Deniability)
-		s.Paranoid.SetChecked(settings.Paranoid)
-		if s.IsEncrypting() {
-			s.ReedSolomon.Enable()
-			s.Deniability.Enable()
-			s.Paranoid.Enable()
 		} else {
-			s.ReedSolomon.Disable()
-			s.Deniability.Disable()
-			s.Paranoid.Disable()
+			s.Comments.SetPlaceHolder("Comments are not encrypted")
+			s.Comments.Enable()
 		}
+	} else {
+		s.Comments.SetPlaceHolder("")
+		s.Comments.SetPlaceHolder("")
+		s.Comments.Disable()
+	}
 
-		s.OrderedKeyfiles.Enable()
+	s.ReedSolomon.SetChecked(settings.ReedSolomon)
+	s.Deniability.SetChecked(settings.Deniability)
+	s.Paranoid.SetChecked(settings.Paranoid)
+	if s.IsEncrypting() {
+		s.ReedSolomon.Enable()
+		s.Deniability.Enable()
+		s.Paranoid.Enable()
+	} else {
+		s.ReedSolomon.Disable()
+		s.Deniability.Disable()
+		s.Paranoid.Disable()
+	}
 
-		if s.IsEncrypting() {
-			s.WorkBtn.SetText("Encrypt")
-			s.WorkBtn.Enable()
-		} else {
-			s.WorkBtn.SetText("Decrypt")
-			s.WorkBtn.Enable()
-		}
-	})
+	s.OrderedKeyfiles.Enable()
+
+	if s.IsEncrypting() {
+		s.ConfirmPassword.SetPlaceHolder("Confirm password")
+		s.ConfirmPassword.Enable()
+	} else {
+		s.ConfirmPassword.SetPlaceHolder("Not required")
+		s.ConfirmPassword.Disable()
+	}
+
+	if s.IsEncrypting() {
+		s.WorkBtn.SetText("Encrypt")
+		s.WorkBtn.Enable()
+	} else {
+		s.WorkBtn.SetText("Decrypt")
+		s.WorkBtn.Enable()
+	}
 
 	return nil
 }
