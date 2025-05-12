@@ -137,6 +137,20 @@ func (s *State) SetInput(input fyne.URI) error {
 
 	s.FileName.SetText(s.input.Name())
 
+	// Set Deniability before Comments to overwrite the result of the callback
+	s.ReedSolomon.SetChecked(settings.ReedSolomon)
+	s.Deniability.SetChecked(settings.Deniability)
+	s.Paranoid.SetChecked(settings.Paranoid)
+	if s.IsEncrypting() {
+		s.ReedSolomon.Enable()
+		s.Deniability.Enable()
+		s.Paranoid.Enable()
+	} else {
+		s.ReedSolomon.Disable()
+		s.Deniability.Disable()
+		s.Paranoid.Disable()
+	}
+
 	s.Comments.SetText(settings.Comments)
 	if s.IsEncrypting() {
 		if settings.Deniability {
@@ -151,19 +165,6 @@ func (s *State) SetInput(input fyne.URI) error {
 		s.Comments.SetPlaceHolder("")
 		s.Comments.SetPlaceHolder("")
 		s.Comments.Disable()
-	}
-
-	s.ReedSolomon.SetChecked(settings.ReedSolomon)
-	s.Deniability.SetChecked(settings.Deniability)
-	s.Paranoid.SetChecked(settings.Paranoid)
-	if s.IsEncrypting() {
-		s.ReedSolomon.Enable()
-		s.Deniability.Enable()
-		s.Paranoid.Enable()
-	} else {
-		s.ReedSolomon.Disable()
-		s.Deniability.Disable()
-		s.Paranoid.Disable()
 	}
 
 	s.OrderedKeyfiles.Enable()

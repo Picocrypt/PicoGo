@@ -141,7 +141,10 @@ func TestComments(t *testing.T) {
 	}
 
 	// Switching to decrypting mode should disable comments
-	state.SetInput(MakeURI("test.pcv"))
+	err := state.SetInput(MakeURI("test.pcv"))
+	if err != nil {
+		t.Errorf("Error setting input: %v", err)
+	}
 	if !state.IsDecrypting() {
 		t.Errorf("State should be decrypting")
 	}
