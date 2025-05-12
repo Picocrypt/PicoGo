@@ -93,20 +93,6 @@ func MakeFilePicker(state *State, logger *Logger, w fyne.Window) *widget.Button 
 	return picker
 }
 
-func filenameUpdate(entry *widget.Entry, state *State) func() {
-	return func() {
-		input := state.Input()
-		text := ""
-		if input != nil {
-			text = input.Name()
-		}
-		if entry.Text != text {
-			entry.Text = text
-			entry.Refresh()
-		}
-	}
-}
-
 func makeComments() *widget.Entry {
 	comments := widget.NewMultiLineEntry()
 	comments.Validator = nil
