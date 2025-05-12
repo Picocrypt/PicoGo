@@ -98,7 +98,7 @@ func TestDecryptingPicocryptFiles(t *testing.T) {
 				defer r.Close()
 				w := bytes.NewBuffer([]byte{})
 				kf := getTestKeyfiles(file.Name())
-				damaged, err := Decrypt("password", kf, r, w, false, nil)
+				damaged, err := Decrypt("password", kf, r, w, false)
 				if damaged {
 					t.Fatal("damaged data")
 				}
@@ -156,7 +156,6 @@ func TestEncryptedFilesMatchPicocrypt(t *testing.T) {
 				kf,
 				settings,
 				w,
-				nil,
 				seeds,
 			)
 			if err != nil {
@@ -292,7 +291,6 @@ func compareShas(
 		[]io.Reader{},
 		writer.decryptStream.headerStream.header.settings,
 		writer,
-		nil,
 		writer.decryptStream.headerStream.header.seeds,
 	)
 	if err != nil {

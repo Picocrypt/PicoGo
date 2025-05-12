@@ -159,7 +159,7 @@ func encrypt(
 			fmt.Sprintf("[%d/%d] Encrypting: %s", outOf[0]+1, outOf[1], inFile),
 		),
 	)
-	header, err := encryption.EncryptHeadless(inReader, password, asReaders(keyfileReaders), settings, io.MultiWriter(outWriter, bar), nil)
+	header, err := encryption.EncryptHeadless(inReader, password, asReaders(keyfileReaders), settings, io.MultiWriter(outWriter, bar))
 	bar.Finish() // don't catch the error, fine to ignore
 	if err != nil {
 		return fmt.Errorf("encrypting %s: %w", inFile, err)
@@ -211,7 +211,6 @@ func decrypt(
 		inReader,
 		io.MultiWriter(outWriter, bar),
 		false,
-		nil,
 	)
 	bar.Finish() // don't catch the error, fine to ignore
 	if err != nil {

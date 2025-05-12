@@ -112,48 +112,15 @@ func (s *State) IsDecrypting() bool {
 }
 
 func (s *State) SetInput(input fyne.URI) error {
-	s.Clear()
 	inputDesc := NewFileDesc(input)
 	s.input = &inputDesc
 
-	// Update visual elements
-	fyne.DoAndWait(func() {
-		boxes := []*widget.Check{
-			s.ReedSolomon,
-			s.Deniability,
-			s.Paranoid,
-			s.OrderedKeyfiles,
-		}
-
-		s.FileName.SetText(s.input.Name())
-		s.updateComments()
-
-		if s.IsEncrypting() {
-			s.WorkBtn.Enable()
-			s.WorkBtn.SetText("Encrypt")
-			for _, box := range boxes {
-				box.Enable()
-				box.Refresh()
-			}
-			s.ConfirmPassword.SetPlaceHolder("Confirm password")
-			s.ConfirmPassword.Enable()
-			s.Comments.Enable()
-		} else if s.IsDecrypting() {
-			s.WorkBtn.Enable()
-			s.WorkBtn.SetText("Decrypt")
-			s.ConfirmPassword.SetText("")
-			s.ConfirmPassword.SetPlaceHolder("Not required")
-			s.ConfirmPassword.Disable()
-			s.Comments.Disable()
-		} else {
-			s.WorkBtn.Disable()
-			s.WorkBtn.SetText("")
-			s.ConfirmPassword.SetPlaceHolder("Not required")
-			s.ConfirmPassword.Disable()
-			s.Comments.Disable()
-		}
-	})
-
+	settings := encryption.Settings{
+		Comments:    "",
+		ReedSolomon: false,
+		Deniability: false,
+		Paranoid:    false,
+	}
 	if s.IsDecrypting() {
 		reader, err := storage.Reader(input)
 		if reader != nil {
@@ -162,17 +129,60 @@ func (s *State) SetInput(input fyne.URI) error {
 		if err != nil {
 			return fmt.Errorf("failed to open file: %w", err)
 		}
-		settings, err := encryption.GetEncryptionSettings(reader)
+		settings, err = encryption.GetEncryptionSettings(reader)
 		if err != nil {
 			return fmt.Errorf("failed to get encryption settings: %w", err)
 		}
-		fyne.DoAndWait(func() {
-			s.Comments.SetText(settings.Comments)
-			s.ReedSolomon.SetChecked(settings.ReedSolomon)
-			s.Deniability.SetChecked(settings.Deniability)
-			s.Paranoid.SetChecked(settings.Paranoid)
-			s.OrderedKeyfiles.SetChecked(settings.OrderedKf)
-		})
+	}
+
+	s.FileName.SetText(s.input.Name())
+
+	// Set Deniability before Comments to overwrite the result of the callback
+	s.ReedSolomon.SetChecked(settings.ReedSolomon)
+	s.Deniability.SetChecked(settings.Deniability)
+	s.Paranoid.SetChecked(settings.Paranoid)
+	if s.IsEncrypting() {
+		s.ReedSolomon.Enable()
+		s.Deniability.Enable()
+		s.Paranoid.Enable()
+	} else {
+		s.ReedSolomon.Disable()
+		s.Deniability.Disable()
+		s.Paranoid.Disable()
+	}
+
+	s.Comments.SetText(settings.Comments)
+	if s.IsEncrypting() {
+		if settings.Deniability {
+			s.Comments.SetText("")
+			s.Comments.SetPlaceHolder("Comments are disabled in deniability mode")
+			s.Comments.Disable()
+		} else {
+			s.Comments.SetPlaceHolder("Comments are not encrypted")
+			s.Comments.Enable()
+		}
+	} else {
+		s.Comments.SetPlaceHolder("")
+		s.Comments.SetPlaceHolder("")
+		s.Comments.Disable()
+	}
+
+	s.OrderedKeyfiles.Enable()
+
+	if s.IsEncrypting() {
+		s.ConfirmPassword.SetPlaceHolder("Confirm password")
+		s.ConfirmPassword.Enable()
+	} else {
+		s.ConfirmPassword.SetPlaceHolder("Not required")
+		s.ConfirmPassword.Disable()
+	}
+
+	if s.IsEncrypting() {
+		s.WorkBtn.SetText("Encrypt")
+		s.WorkBtn.Enable()
+	} else {
+		s.WorkBtn.SetText("Decrypt")
+		s.WorkBtn.Enable()
 	}
 
 	return nil
@@ -197,7 +207,7 @@ func (s *State) Clear() {
 	s.input = nil
 	s.SaveAs = nil
 	s.Keyfiles = nil
-	fyne.Do(func() {
+	fyne.DoAndWait(func() {
 		s.FileName.SetText("")
 		s.Comments.SetText("")
 		s.ReedSolomon.SetChecked(false)
