@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"time"
 )
 
 const readSize = 1 << 20
@@ -29,38 +28,18 @@ type Settings struct {
 	Deniability bool
 }
 
-type Update struct {
-	Status string
-	Bps    int
-	Total  int
-}
-
 func Decrypt(
 	pw string,
 	kf []io.Reader,
 	r io.Reader,
 	w io.Writer,
 	skipReedSolomon bool,
-	update chan Update,
 ) (bool, error) {
 
 	damageTracker := damageTracker{}
 	decryptStream := makeDecryptStream(pw, kf, &damageTracker)
 
-	getNow := func() float64 { return float64(time.Now().UnixMilli()) / 1000.0 }
-	start := getNow()
-	count := 0
-	total := 0
 	for {
-		now := getNow()
-		if now-start > 1.0 {
-			if update != nil {
-				update <- Update{"Decrypting", int(float64(count) / (now - start)), total}
-			}
-			count = 0
-			start = now
-		}
-
 		p := make([]byte, readSize)
 		n, err := r.Read(p)
 		eof := false
@@ -79,8 +58,6 @@ func Decrypt(
 		if err != nil {
 			return damageTracker.damage, err
 		}
-		count += len(p)
-		total += len(p)
 		if eof {
 			p, err := decryptStream.flush()
 			if (err == nil) || errors.Is(err, ErrBodyCorrupted) {
@@ -109,19 +86,15 @@ func EncryptHeadless(
 	keyfiles []io.Reader,
 	settings Settings,
 	out io.Writer,
-	update chan Update,
 ) ([]byte, error) {
 	if len(settings.Comments) > maxCommentsLength {
 		return nil, ErrCommentsTooLong
-	}
-	if update != nil {
-		update <- Update{"Building encryption block", 0, 0}
 	}
 	seeds, err := randomSeeds()
 	if err != nil {
 		return nil, fmt.Errorf("generating seeds: %w", err)
 	}
-	return encryptWithSeeds(in, password, keyfiles, settings, out, update, seeds)
+	return encryptWithSeeds(in, password, keyfiles, settings, out, seeds)
 }
 
 func encryptWithSeeds(
@@ -130,7 +103,6 @@ func encryptWithSeeds(
 	keyfiles []io.Reader,
 	settings Settings,
 	out io.Writer,
-	update chan Update,
 	seeds seeds,
 ) ([]byte, error) {
 	encryptionStream, err := makeEncryptStream(settings, seeds, password, keyfiles)
@@ -138,20 +110,8 @@ func encryptWithSeeds(
 		return nil, fmt.Errorf("making encryption stream: %w", err)
 	}
 
-	getNow := func() float64 { return float64(time.Now().UnixMilli()) / 1000.0 }
-	start := getNow()
-	count := 0
-	total := 0
 	buf := make([]byte, readSize)
 	for {
-		now := getNow()
-		if now-start > 1.0 {
-			if update != nil {
-				update <- Update{"Encrypting", int(float64(count) / (now - start)), total}
-			}
-			count = 0
-			start = now
-		}
 		eof := false
 		n, err := in.Read(buf)
 		if err != nil {
@@ -161,8 +121,6 @@ func encryptWithSeeds(
 				return nil, fmt.Errorf("reading input: %w", err)
 			}
 		}
-		count += n
-		total += n
 		p, err := encryptionStream.stream(buf[:n])
 		if err != nil {
 			return nil, fmt.Errorf("encrypting input: %w", err)

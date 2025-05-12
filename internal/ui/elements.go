@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
+	"time"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/dialog"
@@ -239,4 +240,46 @@ func WorkBtnCallback(state *State, logger *Logger, w fyne.Window, encrypt func()
 		logger.Log("Encrypt/Decrypt button pressed (decrypting)", *state, nil)
 		decrypt()
 	}
+}
+
+type ByteCounter struct {
+	total     int64
+	startTime int64
+	endTime   int64
+}
+
+func (bc *ByteCounter) Read(p []byte) (int, error) {
+	bc.total += int64(len(p))
+	if bc.startTime == 0 {
+		bc.startTime = time.Now().Unix()
+	}
+	bc.endTime = time.Now().Unix()
+	return len(p), nil
+}
+
+func (bc *ByteCounter) Write(p []byte) (int, error) {
+	return bc.Read(p)
+}
+
+func (bc *ByteCounter) stringify(n float64) string {
+	for i, prefix := range []string{"B", "KB", "MB", "GB"} {
+		scale := 1 << (10 * i)
+		if n < float64(scale<<10) {
+			return fmt.Sprintf("%.2f %s", n/float64(scale), prefix)
+		}
+	}
+	return fmt.Sprintf("%.2f TB", n/(1<<40))
+}
+
+func (bc *ByteCounter) Total() string {
+	return bc.stringify(float64(bc.total))
+}
+
+func (bc *ByteCounter) Rate() string {
+	elapsed := bc.endTime - bc.startTime
+	if elapsed == 0 {
+		return "0 B/s"
+	}
+	rate := float64(bc.total) / float64(elapsed)
+	return bc.stringify(rate) + "/s"
 }

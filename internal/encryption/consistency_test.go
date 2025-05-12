@@ -98,7 +98,7 @@ func testConsistency(settings Settings, size int, numKeyfiles int, t *testing.T)
 	kf1, kf2 := getKeyfiles(settings, numKeyfiles, t)
 
 	headless := bytes.NewBuffer([]byte{})
-	header, err := EncryptHeadless(buff(original), password, kf1, settings, headless, nil)
+	header, err := EncryptHeadless(buff(original), password, kf1, settings, headless)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -114,7 +114,7 @@ func testConsistency(settings Settings, size int, numKeyfiles int, t *testing.T)
 		t.Fatal(err)
 	}
 	decrypted := bytes.NewBuffer([]byte{})
-	Decrypt(password, kf2, buff(encrypted), decrypted, false, nil)
+	Decrypt(password, kf2, buff(encrypted), decrypted, false)
 
 	result, err := io.ReadAll(decrypted)
 	if err != nil {

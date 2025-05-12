@@ -157,15 +157,16 @@ func saveOutput(logger *ui.Logger, state *ui.State, window fyne.Window, app fyne
 		return
 	}
 	errCh := make(chan error)
+	counter := ui.ByteCounter{}
 	go func() {
-		_, err := io.Copy(saveAs, output)
+		_, err := io.Copy(io.MultiWriter(&counter, saveAs), output)
 		errCh <- err
 	}()
 
-	// progress bar
+	progress := widget.NewLabel("")
 	d := dialog.NewCustomWithoutButtons(
 		"Saving",
-		container.New(layout.NewVBoxLayout(), widget.NewProgressBarInfinite()),
+		container.New(layout.NewVBoxLayout(), progress),
 		window,
 	)
 	fyne.Do(d.Show)
@@ -174,7 +175,7 @@ func saveOutput(logger *ui.Logger, state *ui.State, window fyne.Window, app fyne
 	for {
 		select {
 		case err := <-errCh:
-			fyne.Do(d.Hide)
+			fyne.Do(d.Dismiss)
 			if err != nil {
 				logger.Log("Saving output", *state, err)
 				dialog.ShowError(fmt.Errorf("copying output: %w", err), window)
@@ -187,14 +188,17 @@ func saveOutput(logger *ui.Logger, state *ui.State, window fyne.Window, app fyne
 			state.Clear()
 			return
 		default:
-			time.Sleep(time.Second / 10)
+			time.Sleep(time.Second / 4)
+			fyne.Do(func() {
+				progress.SetText("Total: " + counter.Total() + "\nRate:   " + counter.Rate())
+			})
 		}
 	}
 }
 
 func encrypt(logger *ui.Logger, state *ui.State, win fyne.Window, app fyne.App) {
-	updateCh := make(chan encryption.Update)
 	errCh := make(chan error)
+	counter := ui.ByteCounter{}
 
 	go func() {
 		logger.Log("Start encryption routine", *state, nil)
@@ -246,7 +250,7 @@ func encrypt(logger *ui.Logger, state *ui.State, win fyne.Window, app fyne.App) 
 			Deniability: state.Deniability.Checked,
 		}
 		header, err := encryption.EncryptHeadless(
-			input, state.Password.Text, keyfiles, settings, headlessWriter, updateCh,
+			input, state.Password.Text, keyfiles, settings, io.MultiWriter(headlessWriter, &counter),
 		)
 		if err != nil {
 			logger.Log("Encrypt headless", *state, err)
@@ -287,26 +291,20 @@ func encrypt(logger *ui.Logger, state *ui.State, win fyne.Window, app fyne.App) 
 		errCh <- err
 	}()
 
-	// Show progress, blocking until completion
-	status := widget.NewLabel("")
-	d := dialog.NewCustomWithoutButtons(
-		"Encrypting",
-		container.New(layout.NewVBoxLayout(), widget.NewProgressBarInfinite(), status),
-		win,
-	)
+	progress := widget.NewLabel("")
+	d := dialog.NewCustomWithoutButtons("Encrypting", container.New(layout.NewVBoxLayout(), progress), win)
 	fyne.Do(d.Show)
 	var encryptErr error
 	for {
 		doBreak := false
 		select {
-		case update := <-updateCh:
-			fyne.Do(func() { status.SetText(update.Status) })
 		case err := <-errCh:
 			fyne.Do(d.Dismiss)
 			encryptErr = err
 			doBreak = true
 		default:
-			time.Sleep(time.Second / 10)
+			time.Sleep(time.Second / 4)
+			fyne.Do(func() { progress.SetText("Total: " + counter.Total() + "\nRate: " + counter.Rate()) })
 		}
 		if doBreak {
 			break
@@ -372,14 +370,20 @@ func tryDecrypt(
 	}
 	defer output.Close()
 
-	updateCh := make(chan encryption.Update)
 	errCh := make(chan struct {
 		bool
 		error
 	})
+	counter := ui.ByteCounter{}
 	go func() {
 		logger.Log("Decryption routine start", *state, nil)
-		damaged, err := encryption.Decrypt(state.Password.Text, keyfiles, input, output, recoveryMode, updateCh)
+		damaged, err := encryption.Decrypt(
+			state.Password.Text,
+			keyfiles,
+			input,
+			io.MultiWriter(output, &counter),
+			recoveryMode,
+		)
 		errCh <- struct {
 			bool
 			error
@@ -387,23 +391,20 @@ func tryDecrypt(
 	}()
 
 	// Block until completion
-	status := widget.NewLabel("")
-	d := dialog.NewCustomWithoutButtons(
-		"Decrypting",
-		container.New(layout.NewVBoxLayout(), widget.NewProgressBarInfinite(), status),
-		w,
-	)
+	progress := widget.NewLabel("")
+	d := dialog.NewCustomWithoutButtons("Decrypting", container.New(layout.NewVBoxLayout(), progress), w)
 	fyne.Do(d.Show)
 	for {
 		select {
-		case update := <-updateCh:
-			fyne.Do(func() { status.SetText(update.Status) })
 		case err := <-errCh:
 			fyne.Do(d.Dismiss)
 			logger.Log("Decryption routine end", *state, err.error)
 			return err.bool, err.error
 		default:
-			time.Sleep(time.Second / 10)
+			time.Sleep(time.Second / 4)
+			fyne.Do(func() {
+				progress.SetText("Total: " + counter.Total() + "\nRate: " + counter.Rate())
+			})
 		}
 	}
 }
