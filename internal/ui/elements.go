@@ -72,7 +72,7 @@ func MakeSettingsBtn(settings *Settings, parent fyne.Window) *widget.Button { //
 			"Close",
 			container.New(
 				layout.NewVBoxLayout(),
-				widget.NewLabel("Defaults"),
+				widget.NewRichTextFromMarkdown("### Defaults"),
 				settings.ReedSolomonDefault,
 				settings.ParanoidDefault,
 				settings.DeniabilityDefault,
