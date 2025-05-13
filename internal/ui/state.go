@@ -108,7 +108,14 @@ func NewState(app fyne.App) *State {
 		WorkBtn:         widget.NewButton("Encrypt", nil),
 		Settings:        NewSettings(app),
 	}
+
 	state.Deniability.OnChanged = func(checked bool) { state.updateComments() }
+
+	state.ReedSolomon.SetChecked(state.Settings.ReedSolomonDefault.Checked)
+	state.Paranoid.SetChecked(state.Settings.ParanoidDefault.Checked)
+	state.OrderedKeyfiles.SetChecked(state.Settings.OrderedKfDefault.Checked)
+	state.Deniability.SetChecked(state.Settings.DeniabilityDefault.Checked)
+
 	return &state
 }
 
@@ -240,10 +247,10 @@ func (s *State) Clear() {
 	fyne.DoAndWait(func() {
 		s.FileName.SetText("")
 		s.Comments.SetText("")
-		s.ReedSolomon.SetChecked(false)
-		s.Deniability.SetChecked(false)
-		s.Paranoid.SetChecked(false)
-		s.OrderedKeyfiles.SetChecked(false)
+		s.ReedSolomon.SetChecked(s.Settings.ReedSolomonDefault.Checked)
+		s.Deniability.SetChecked(s.Settings.DeniabilityDefault.Checked)
+		s.Paranoid.SetChecked(s.Settings.ParanoidDefault.Checked)
+		s.OrderedKeyfiles.SetChecked(s.Settings.OrderedKfDefault.Checked)
 		s.Password.SetText("")
 		s.ConfirmPassword.SetText("")
 	})
