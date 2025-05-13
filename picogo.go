@@ -532,6 +532,7 @@ func main() {
 		layout.NewHBoxLayout(),
 		infoBtn,
 		logBtn,
+		ui.MakeSettingsBtn(state.Settings, w),
 		layout.NewSpacer(),
 	)
 

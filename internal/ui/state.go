@@ -64,13 +64,19 @@ func (s *Settings) Save(app fyne.App) {
 func NewSettings(app fyne.App) *Settings {
 	s := Settings{}
 	s.ReedSolomonDefault = widget.NewCheck("Reed-Solomon", func(bool) { s.Save(app) })
-	s.ReedSolomonDefault.SetChecked(app.Preferences().Bool("ReedSolomonDefault"))
 	s.ParanoidDefault = widget.NewCheck("Paranoid", func(bool) { s.Save(app) })
-	s.ParanoidDefault.SetChecked(app.Preferences().Bool("ParanoidDefault"))
 	s.OrderedKfDefault = widget.NewCheck("Ordered Keyfiles", func(bool) { s.Save(app) })
-	s.OrderedKfDefault.SetChecked(app.Preferences().Bool("OrderedKfDefault"))
 	s.DeniabilityDefault = widget.NewCheck("Deniability", func(bool) { s.Save(app) })
-	s.DeniabilityDefault.SetChecked(app.Preferences().Bool("DeniabilityDefault"))
+
+	reedSolomon := app.Preferences().Bool("ReedSolomonDefault")
+	orderedKf := app.Preferences().Bool("OrderedKfDefault")
+	paranoid := app.Preferences().Bool("ParanoidDefault")
+	deniability := app.Preferences().Bool("DeniabilityDefault")
+
+	s.ReedSolomonDefault.SetChecked(reedSolomon)
+	s.ParanoidDefault.SetChecked(paranoid)
+	s.OrderedKfDefault.SetChecked(orderedKf)
+	s.DeniabilityDefault.SetChecked(deniability)
 	return &s
 }
 
@@ -154,9 +160,9 @@ func (s *State) SetInput(input fyne.URI) error {
 
 	settings := encryption.Settings{
 		Comments:    "",
-		ReedSolomon: false,
-		Deniability: false,
-		Paranoid:    false,
+		ReedSolomon: s.Settings.ReedSolomonDefault.Checked,
+		Deniability: s.Settings.DeniabilityDefault.Checked,
+		Paranoid:    s.Settings.ParanoidDefault.Checked,
 	}
 	if s.IsDecrypting() {
 		reader, err := storage.Reader(input)

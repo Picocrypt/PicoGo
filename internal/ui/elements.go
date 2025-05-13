@@ -7,7 +7,9 @@ import (
 	"time"
 
 	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
+	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 )
@@ -59,6 +61,25 @@ func MakeLogBtn(logger *Logger, w fyne.Window) *widget.Button { // coverage-igno
 				writeLogs(logger, w)
 			}
 		}, w)
+	})
+	return btn
+}
+
+func MakeSettingsBtn(settings *Settings, parent fyne.Window) *widget.Button { // coverage-ignore
+	btn := widget.NewButtonWithIcon("", theme.SettingsIcon(), func() {
+		dialog.ShowCustom(
+			"Settings",
+			"Close",
+			container.New(
+				layout.NewVBoxLayout(),
+				widget.NewLabel("Defaults"),
+				settings.ReedSolomonDefault,
+				settings.ParanoidDefault,
+				settings.DeniabilityDefault,
+				settings.OrderedKfDefault,
+			),
+			parent,
+		)
 	})
 	return btn
 }
