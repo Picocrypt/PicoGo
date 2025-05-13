@@ -521,7 +521,7 @@ func main() {
 	a := app.New()
 	a.Settings().SetTheme(&myTheme{})
 	w := a.NewWindow("PicoGo")
-	state := ui.NewState()
+	state := ui.NewState(a)
 
 	logger := ui.Logger{}
 	logger.Log("Starting PicoGo", *state, nil)

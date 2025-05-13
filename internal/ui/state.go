@@ -46,6 +46,34 @@ func NewFileDesc(uri fyne.URI) fileDesc {
 	}
 }
 
+type Settings struct {
+	ReedSolomonDefault *widget.Check
+	ParanoidDefault    *widget.Check
+	OrderedKfDefault   *widget.Check
+	DeniabilityDefault *widget.Check
+}
+
+func (s *Settings) Save(app fyne.App) {
+	preferences := app.Preferences()
+	preferences.SetBool("ReedSolomonDefault", s.ReedSolomonDefault.Checked)
+	preferences.SetBool("ParanoidDefault", s.ParanoidDefault.Checked)
+	preferences.SetBool("OrderedKfDefault", s.OrderedKfDefault.Checked)
+	preferences.SetBool("DeniabilityDefault", s.DeniabilityDefault.Checked)
+}
+
+func NewSettings(app fyne.App) *Settings {
+	s := Settings{}
+	s.ReedSolomonDefault = widget.NewCheck("Reed-Solomon", func(bool) { s.Save(app) })
+	s.ReedSolomonDefault.SetChecked(app.Preferences().Bool("ReedSolomonDefault"))
+	s.ParanoidDefault = widget.NewCheck("Paranoid", func(bool) { s.Save(app) })
+	s.ParanoidDefault.SetChecked(app.Preferences().Bool("ParanoidDefault"))
+	s.OrderedKfDefault = widget.NewCheck("Ordered Keyfiles", func(bool) { s.Save(app) })
+	s.OrderedKfDefault.SetChecked(app.Preferences().Bool("OrderedKfDefault"))
+	s.DeniabilityDefault = widget.NewCheck("Deniability", func(bool) { s.Save(app) })
+	s.DeniabilityDefault.SetChecked(app.Preferences().Bool("DeniabilityDefault"))
+	return &s
+}
+
 type State struct {
 	FileName        *widget.Label
 	input           *fileDesc
@@ -60,9 +88,10 @@ type State struct {
 	Password        *widget.Entry
 	ConfirmPassword *widget.Entry
 	WorkBtn         *widget.Button
+	Settings        *Settings
 }
 
-func NewState() *State {
+func NewState(app fyne.App) *State {
 	state := State{
 		FileName:        widget.NewLabel(""),
 		input:           nil,
@@ -77,6 +106,7 @@ func NewState() *State {
 		Password:        makePassword(),
 		ConfirmPassword: makeConfirmPassword(),
 		WorkBtn:         widget.NewButton("Encrypt", nil),
+		Settings:        NewSettings(app),
 	}
 	state.Deniability.OnChanged = func(checked bool) { state.updateComments() }
 	return &state
