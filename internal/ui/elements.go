@@ -68,11 +68,10 @@ func MakeLogBtn(logger *Logger, w fyne.Window) *widget.Button { // coverage-igno
 func MakeSettingsBtn(settings *Settings, parent fyne.Window) *widget.Button { // coverage-ignore
 	btn := widget.NewButtonWithIcon("", theme.SettingsIcon(), func() {
 		dialog.ShowCustom(
-			"Settings",
+			"Default Settings",
 			"Close",
 			container.New(
 				layout.NewVBoxLayout(),
-				widget.NewRichTextFromMarkdown("### Defaults"),
 				settings.ReedSolomonDefault,
 				settings.ParanoidDefault,
 				settings.DeniabilityDefault,
