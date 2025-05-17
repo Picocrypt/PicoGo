@@ -266,3 +266,14 @@ func (s *State) Clear() {
 		s.ConfirmPassword.SetText("")
 	})
 }
+
+func (s *State) DefaultSaveName() string {
+	if s.input == nil {
+		return ""
+	}
+	name := s.input.Name()
+	if strings.HasSuffix(s.input.name, ".pcv") {
+		return strings.TrimSuffix(name, ".pcv")
+	}
+	return name + ".pcv"
+}

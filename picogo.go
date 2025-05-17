@@ -309,7 +309,7 @@ func tryDecrypt(
 }
 
 func decrypt(logger *ui.Logger, state *ui.State, win fyne.Window, app fyne.App) {
-	decryptedData := ui.NewDecryptedData(state.Settings.PreviewMode.Checked, app)
+	decryptedData := ui.NewDecryptedData(state.DefaultSaveName(), state.Settings.PreviewMode.Checked, app)
 	damaged, err := tryDecrypt(logger, state, win, app, decryptedData)
 	decryptedData.Close()
 
@@ -328,7 +328,7 @@ func decrypt(logger *ui.Logger, state *ui.State, win fyne.Window, app fyne.App) 
 				func(b bool) {
 					go func() {
 						if b {
-							decryptedData = ui.NewDecryptedData(false, app)
+							decryptedData = ui.NewDecryptedData(state.DefaultSaveName(), false, app)
 							logger.Log("Retrying without preview mode", *state, nil)
 							damaged, err = tryDecrypt(logger, state, win, app, decryptedData)
 						} else {
@@ -380,18 +380,32 @@ func decrypt(logger *ui.Logger, state *ui.State, win fyne.Window, app fyne.App) 
 	if save {
 		text := widget.NewLabel(msg)
 		text.Wrapping = fyne.TextWrapWord
-		d := dialog.NewCustomConfirm(
+		cancelBtn := widget.NewButton("Cancel", func() {})
+		saveBtn := widget.NewButton("Save", func() {})
+		btns := []fyne.CanvasObject{cancelBtn}
+		previewFunc := decryptedData.PreviewFunc()
+		if previewFunc != nil {
+			previewBtn := widget.NewButton("Preview", func() { previewFunc(win) })
+			btns = append(btns, previewBtn)
+		}
+		btns = append(btns, saveBtn)
+		d := dialog.NewCustomWithoutButtons(
 			"Decryption Complete",
-			"Save",
-			"Cancel",
-			text,
-			func(b bool) {
-				if b {
-					chooseSaveAs(logger, state, win, app, decryptedData)
-				}
-			},
+			container.New(
+				layout.NewVBoxLayout(),
+				text,
+				container.New(
+					layout.NewHBoxLayout(),
+					btns...,
+				),
+			),
 			win,
 		)
+		cancelBtn.OnTapped = func() { fyne.Do(d.Dismiss) }
+		saveBtn.OnTapped = func() {
+			fyne.Do(d.Dismiss)
+			go func() { chooseSaveAs(logger, state, win, app, decryptedData) }()
+		}
 		fyne.Do(d.Show)
 	} else {
 		fyne.Do(func() { dialog.ShowError(errors.New(msg), win) })

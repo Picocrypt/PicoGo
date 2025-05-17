@@ -5,9 +5,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"strings"
 
 	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/canvas"
+	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/storage"
+	"fyne.io/fyne/v2/widget"
 )
 
 // Large enough for most files without using too much memory
@@ -55,6 +59,7 @@ type DecryptedData struct {
 	file     fyne.URIWriteCloser
 	inMemory bool
 	app      fyne.App
+	name     string
 }
 
 func (d *DecryptedData) Write(p []byte) (n int, err error) {
@@ -94,11 +99,32 @@ func (d *DecryptedData) CopyTo(dest io.Writer) error {
 	return err
 }
 
-func NewDecryptedData(inMemory bool, app fyne.App) *DecryptedData {
+func (d *DecryptedData) PreviewFunc() func(fyne.Window) {
+	if !d.inMemory {
+		return nil
+	}
+	return func(w fyne.Window) {
+		if isImage(d.name) {
+			reader := bytes.NewReader(d.buf.buf.Bytes())
+			d := dialog.NewCustom("Preview", "Close", canvas.NewImageFromReader(reader, d.name), w)
+			fyne.Do(d.Show)
+		} else {
+			text := widget.NewMultiLineEntry()
+			text.SetText(string(d.buf.buf.Bytes()))
+			text.Wrapping = fyne.TextWrapWord
+			text.Disable()
+			d := dialog.NewCustom("Preview", "Close", text, w)
+			fyne.Do(d.Show)
+		}
+	}
+}
+
+func NewDecryptedData(name string, inMemory bool, app fyne.App) *DecryptedData {
 	return &DecryptedData{
 		inMemory: inMemory,
 		buf:      previewBuffer{bytes.Buffer{}},
 		app:      app,
+		name:     name,
 	}
 }
 
@@ -167,4 +193,13 @@ func ClearTempFile(app fyne.App) error {
 		return fmt.Errorf("writing temp file: %w", err)
 	}
 	return nil
+}
+
+func isImage(name string) bool {
+	for _, ext := range []string{".png", ".jpg", ".jpeg", "svg"} {
+		if strings.HasSuffix(name, ext) {
+			return true
+		}
+	}
+	return false
 }
