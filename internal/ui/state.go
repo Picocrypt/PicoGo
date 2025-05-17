@@ -51,6 +51,7 @@ type Settings struct {
 	ParanoidDefault    *widget.Check
 	OrderedKfDefault   *widget.Check
 	DeniabilityDefault *widget.Check
+	PreviewMode        *widget.Check
 }
 
 func (s *Settings) Save(app fyne.App) {
@@ -59,6 +60,7 @@ func (s *Settings) Save(app fyne.App) {
 	preferences.SetBool("ParanoidDefault", s.ParanoidDefault.Checked)
 	preferences.SetBool("OrderedKfDefault", s.OrderedKfDefault.Checked)
 	preferences.SetBool("DeniabilityDefault", s.DeniabilityDefault.Checked)
+	preferences.SetBool("PreviewMode", s.PreviewMode.Checked)
 }
 
 func NewSettings(app fyne.App) *Settings {
@@ -67,16 +69,19 @@ func NewSettings(app fyne.App) *Settings {
 	s.ParanoidDefault = widget.NewCheck("Paranoid", func(bool) { s.Save(app) })
 	s.OrderedKfDefault = widget.NewCheck("Ordered Keyfiles", func(bool) { s.Save(app) })
 	s.DeniabilityDefault = widget.NewCheck("Deniability", func(bool) { s.Save(app) })
+	s.PreviewMode = widget.NewCheck("Preview Mode", func(bool) { s.Save(app) })
 
-	reedSolomon := app.Preferences().Bool("ReedSolomonDefault")
-	orderedKf := app.Preferences().Bool("OrderedKfDefault")
-	paranoid := app.Preferences().Bool("ParanoidDefault")
-	deniability := app.Preferences().Bool("DeniabilityDefault")
+	reedSolomon := app.Preferences().BoolWithFallback("ReedSolomonDefault", false)
+	orderedKf := app.Preferences().BoolWithFallback("OrderedKfDefault", false)
+	paranoid := app.Preferences().BoolWithFallback("ParanoidDefault", false)
+	deniability := app.Preferences().BoolWithFallback("DeniabilityDefault", false)
+	previewMode := app.Preferences().BoolWithFallback("DeniabilityDefault", true)
 
 	s.ReedSolomonDefault.SetChecked(reedSolomon)
 	s.ParanoidDefault.SetChecked(paranoid)
 	s.OrderedKfDefault.SetChecked(orderedKf)
 	s.DeniabilityDefault.SetChecked(deniability)
+	s.PreviewMode.SetChecked(previewMode)
 	return &s
 }
 

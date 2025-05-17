@@ -76,6 +76,7 @@ func MakeSettingsBtn(settings *Settings, parent fyne.Window) *widget.Button { //
 				settings.ParanoidDefault,
 				settings.DeniabilityDefault,
 				settings.OrderedKfDefault,
+				settings.PreviewMode,
 			),
 			parent,
 		)
