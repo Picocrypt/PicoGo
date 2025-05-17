@@ -75,7 +75,7 @@ func NewSettings(app fyne.App) *Settings {
 	orderedKf := app.Preferences().BoolWithFallback("OrderedKfDefault", false)
 	paranoid := app.Preferences().BoolWithFallback("ParanoidDefault", false)
 	deniability := app.Preferences().BoolWithFallback("DeniabilityDefault", false)
-	previewMode := app.Preferences().BoolWithFallback("DeniabilityDefault", true)
+	previewMode := app.Preferences().BoolWithFallback("PreviewMode", true)
 
 	s.ReedSolomonDefault.SetChecked(reedSolomon)
 	s.ParanoidDefault.SetChecked(paranoid)
