@@ -385,7 +385,7 @@ func decrypt(logger *ui.Logger, state *ui.State, win fyne.Window, app fyne.App) 
 		btns := []fyne.CanvasObject{cancelBtn}
 		previewFunc := decryptedData.PreviewFunc()
 		if previewFunc != nil {
-			previewBtn := widget.NewButton("Preview", func() { previewFunc(win) })
+			previewBtn := widget.NewButton("Preview", func() { previewFunc() })
 			btns = append(btns, previewBtn)
 		}
 		btns = append(btns, saveBtn)
@@ -546,5 +546,7 @@ func main() {
 	)
 
 	fyne.Do(func() { developmentWarning(w) })
-	w.ShowAndRun()
+	// w.ShowAndRun()
+	w.Show()
+	a.Run()
 }

@@ -9,7 +9,8 @@ import (
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
-	"fyne.io/fyne/v2/dialog"
+	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/storage"
 	"fyne.io/fyne/v2/widget"
 )
@@ -99,23 +100,35 @@ func (d *DecryptedData) CopyTo(dest io.Writer) error {
 	return err
 }
 
-func (d *DecryptedData) PreviewFunc() func(fyne.Window) {
+func (d *DecryptedData) PreviewFunc() func() {
 	if !d.inMemory {
 		return nil
 	}
-	return func(w fyne.Window) {
+	return func() {
+		w := d.app.NewWindow("Preview")
 		if isImage(d.name) {
 			reader := bytes.NewReader(d.buf.buf.Bytes())
-			d := dialog.NewCustom("Preview", "Close", canvas.NewImageFromReader(reader, d.name), w)
-			fyne.Do(d.Show)
+			image := canvas.NewImageFromReader(reader, d.name)
+			image.SetMinSize(fyne.NewSize(400, 400))
+			image.FillMode = canvas.ImageFillContain
+			closeBtn := widget.NewButton("Close", func() { w.Close() })
+			w.SetContent(
+				container.New(
+					layout.NewVBoxLayout(),
+					image,
+					closeBtn,
+				),
+			)
 		} else {
-			text := widget.NewMultiLineEntry()
-			text.SetText(string(d.buf.buf.Bytes()))
-			text.Wrapping = fyne.TextWrapWord
-			text.Disable()
-			d := dialog.NewCustom("Preview", "Close", text, w)
-			fyne.Do(d.Show)
+			w.SetContent(
+				container.New(
+					layout.NewVBoxLayout(),
+					widget.NewRichTextWithText(string(d.buf.buf.Bytes())),
+					widget.NewButton("Close", func() { w.Close() }),
+				),
+			)
 		}
+		fyne.Do(w.Show)
 	}
 }
 
