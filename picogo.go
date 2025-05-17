@@ -24,8 +24,6 @@ import (
 
 type myTheme struct{}
 
-var errPreviewMemoryExceeded = errors.New("preview memory limit exceeded")
-
 func (m myTheme) Color(name fyne.ThemeColorName, variant fyne.ThemeVariant) color.Color {
 	switch name {
 	case theme.ColorNameDisabled:
@@ -62,43 +60,15 @@ func uriWriteCloser(uri string) (fyne.URIWriteCloser, error) {
 	return storage.Writer(fullUri)
 }
 
-func clearFile(uri fyne.URI) error {
-	writer, err := storage.Writer(uri)
-	if writer != nil {
-		defer writer.Close()
-	}
-	if err != nil {
-		return err
-	}
-	_, err = writer.Write(make([]byte, 1))
-	return err
-}
-
 func getHeadlessURI(app fyne.App) (fyne.URI, error) {
 	return storage.Child(app.Storage().RootURI(), "headless")
-}
-
-func clearHeadlessFile(app fyne.App) error {
-	headlessURI, err := getHeadlessURI(app)
-	if err != nil {
-		return err
-	}
-	return clearFile(headlessURI)
 }
 
 func getOutputURI(app fyne.App) (fyne.URI, error) {
 	return storage.Child(app.Storage().RootURI(), "output")
 }
 
-func clearOutputFile(app fyne.App) error {
-	outputURI, err := getOutputURI(app)
-	if err != nil {
-		return err
-	}
-	return clearFile(outputURI)
-}
-
-func chooseSaveAs(logger *ui.Logger, state *ui.State, window fyne.Window, app fyne.App) {
+func chooseSaveAs(logger *ui.Logger, state *ui.State, window fyne.Window, app fyne.App, data ui.CopyTo) {
 	d := dialog.NewFileSave(func(writer fyne.URIWriteCloser, err error) {
 		if writer != nil {
 			defer writer.Close()
@@ -113,7 +83,7 @@ func chooseSaveAs(logger *ui.Logger, state *ui.State, window fyne.Window, app fy
 			state.SaveAs = &saveAs
 			logger.Log("Chose where to save output", *state, nil)
 			go func() {
-				saveOutput(logger, state, window, app)
+				saveOutput(logger, state, window, app, data)
 			}()
 		} else {
 			logger.Log("Canceled choosing where to save output", *state, nil)
@@ -132,23 +102,8 @@ func chooseSaveAs(logger *ui.Logger, state *ui.State, window fyne.Window, app fy
 	fyne.Do(d.Show)
 }
 
-func saveOutput(logger *ui.Logger, state *ui.State, window fyne.Window, app fyne.App) {
+func saveOutput(logger *ui.Logger, state *ui.State, window fyne.Window, app fyne.App, data ui.CopyTo) {
 	defer func() { state.SaveAs = nil }()
-	outputURI, err := getOutputURI(app)
-	if err != nil {
-		logger.Log("Get output uri", *state, err)
-		dialog.ShowError(fmt.Errorf("finding output file: %w", err), window)
-		return
-	}
-	output, err := storage.Reader(outputURI)
-	if output != nil {
-		defer output.Close()
-	}
-	if err != nil {
-		logger.Log("Get output reader", *state, err)
-		dialog.ShowError(fmt.Errorf("opening output file: %w", err), window)
-		return
-	}
 	saveAs, err := uriWriteCloser(state.SaveAs.Uri())
 	if saveAs != nil {
 		defer saveAs.Close()
@@ -161,8 +116,7 @@ func saveOutput(logger *ui.Logger, state *ui.State, window fyne.Window, app fyne
 	errCh := make(chan error)
 	counter := ui.ByteCounter{}
 	go func() {
-		_, err := io.Copy(io.MultiWriter(&counter, saveAs), output)
-		errCh <- err
+		errCh <- data.CopyTo(io.MultiWriter(saveAs, &counter))
 	}()
 
 	progress := widget.NewLabel("")
@@ -182,9 +136,9 @@ func saveOutput(logger *ui.Logger, state *ui.State, window fyne.Window, app fyne
 				logger.Log("Saving output", *state, err)
 				dialog.ShowError(fmt.Errorf("copying output: %w", err), window)
 			}
-			err = clearOutputFile(app)
+			err = ui.ClearTempFile(app)
 			if err != nil {
-				logger.Log("Clearing output file", *state, err)
+				logger.Log("Clearing temp file", *state, err)
 				dialog.ShowError(fmt.Errorf("cleaning tmp file: %w", err), window)
 			}
 			state.Clear()
@@ -201,32 +155,17 @@ func saveOutput(logger *ui.Logger, state *ui.State, window fyne.Window, app fyne
 func encrypt(logger *ui.Logger, state *ui.State, win fyne.Window, app fyne.App) {
 	errCh := make(chan error)
 	counter := ui.ByteCounter{}
+	encryptedData := ui.NewEncryptedData(app)
 
 	go func() {
 		logger.Log("Start encryption routine", *state, nil)
-		headlessURI, err := getHeadlessURI(app)
-		if err != nil {
-			logger.Log("Get headless URI", *state, err)
-			errCh <- err
-			return
-		}
+		defer encryptedData.Close()
 		input, err := uriReadCloser(state.Input().Uri())
 		if input != nil {
 			defer input.Close()
 		}
 		if err != nil {
 			logger.Log("Get input reader", *state, err)
-			errCh <- err
-			return
-		}
-
-		headlessWriter, err := storage.Writer(headlessURI)
-		if headlessWriter != nil {
-			defer clearHeadlessFile(app)
-			defer headlessWriter.Close()
-		}
-		if err != nil {
-			logger.Log("Get headless writer", *state, err)
 			errCh <- err
 			return
 		}
@@ -252,45 +191,15 @@ func encrypt(logger *ui.Logger, state *ui.State, win fyne.Window, app fyne.App) 
 			Deniability: state.Deniability.Checked,
 		}
 		header, err := encryption.EncryptHeadless(
-			input, state.Password.Text, keyfiles, settings, io.MultiWriter(headlessWriter, &counter),
+			input, state.Password.Text, keyfiles, settings, io.MultiWriter(encryptedData, &counter),
 		)
 		if err != nil {
 			logger.Log("Encrypt headless", *state, err)
 			errCh <- err
 			return
 		}
-
-		headlessReader, err := storage.Reader(headlessURI)
-		if headlessReader != nil {
-			defer headlessReader.Close()
-		}
-		if err != nil {
-			logger.Log("Get headless reader", *state, err)
-			errCh <- err
-			return
-		}
-
-		outputURI, err := getOutputURI(app)
-		if err != nil {
-			logger.Log("Get output uri", *state, err)
-			errCh <- err
-			return
-		}
-		output, err := storage.Writer(outputURI)
-		if output != nil {
-			defer output.Close()
-		}
-		if err != nil {
-			logger.Log("Get output writer", *state, err)
-			errCh <- err
-			return
-		}
-
-		err = encryption.PrependHeader(headlessReader, output, header)
-		if err != nil {
-			logger.Log("Prepend header", *state, err)
-		}
-		errCh <- err
+		encryptedData.Header = header
+		errCh <- nil
 	}()
 
 	progress := widget.NewLabel("")
@@ -327,7 +236,7 @@ func encrypt(logger *ui.Logger, state *ui.State, win fyne.Window, app fyne.App) 
 			text,
 			func(b bool) {
 				if b {
-					chooseSaveAs(logger, state, win, app)
+					chooseSaveAs(logger, state, win, app, encryptedData)
 				}
 			},
 			win,
@@ -340,7 +249,7 @@ func tryDecrypt(
 	state *ui.State,
 	w fyne.Window,
 	app fyne.App,
-	previewMode bool,
+	decryptedData *ui.DecryptedData,
 ) (bool, error) {
 	input, err := uriReadCloser(state.Input().Uri())
 	if err != nil {
@@ -360,18 +269,6 @@ func tryDecrypt(
 		keyfiles = append(keyfiles, r)
 	}
 
-	outputURI, err := getOutputURI(app)
-	if err != nil {
-		logger.Log("Get output URI", *state, err)
-		return false, err
-	}
-	output, err := uriWriteCloser(outputURI.String())
-	if err != nil {
-		logger.Log("Get output writer", *state, err)
-		return false, err
-	}
-	defer output.Close()
-
 	errCh := make(chan struct {
 		bool
 		error
@@ -383,7 +280,7 @@ func tryDecrypt(
 			state.Password.Text,
 			keyfiles,
 			input,
-			io.MultiWriter(output, &counter),
+			io.MultiWriter(decryptedData, &counter),
 			true,
 		)
 		errCh <- struct {
@@ -412,29 +309,38 @@ func tryDecrypt(
 }
 
 func decrypt(logger *ui.Logger, state *ui.State, win fyne.Window, app fyne.App) {
-	damaged, err := tryDecrypt(logger, state, win, app, state.Settings.PreviewMode.Checked)
+	decryptedData := ui.NewDecryptedData(state.Settings.PreviewMode.Checked, app)
+	damaged, err := tryDecrypt(logger, state, win, app, decryptedData)
+	decryptedData.Close()
+
 	retryCanceled := false
-	if errors.Is(err, errPreviewMemoryExceeded) {
+	if errors.Is(err, ui.ErrPreviewMemoryExceeded) {
 		// Offer to try again without preview mode
 		text := widget.NewLabel("The file is too large to preview. Would you like to try again without preview mode?\n\nNote: you can turn off preview mode by default in the settings.")
 		text.Wrapping = fyne.TextWrapWord
 		doneCh := make(chan struct{})
-		dialog.ShowCustomConfirm(
-			"Preview Memory Exceeded",
-			"Retry",
-			"Cancel",
-			text,
-			func(b bool) {
-				if b {
-					logger.Log("Retrying without preview mode", *state, nil)
-					damaged, err = tryDecrypt(logger, state, win, app, false)
-				} else {
-					retryCanceled = true
-				}
-				doneCh <- struct{}{}
-			},
-			win,
-		)
+		go func() {
+			d := dialog.NewCustomConfirm(
+				"Preview Memory Exceeded",
+				"Retry",
+				"Cancel",
+				text,
+				func(b bool) {
+					go func() {
+						if b {
+							decryptedData = ui.NewDecryptedData(false, app)
+							logger.Log("Retrying without preview mode", *state, nil)
+							damaged, err = tryDecrypt(logger, state, win, app, decryptedData)
+						} else {
+							retryCanceled = true
+						}
+						doneCh <- struct{}{}
+					}()
+				},
+				win,
+			)
+			fyne.Do(d.Show)
+		}()
 		<-doneCh
 	}
 	if retryCanceled {
@@ -474,20 +380,21 @@ func decrypt(logger *ui.Logger, state *ui.State, win fyne.Window, app fyne.App) 
 	if save {
 		text := widget.NewLabel(msg)
 		text.Wrapping = fyne.TextWrapWord
-		dialog.ShowCustomConfirm(
+		d := dialog.NewCustomConfirm(
 			"Decryption Complete",
 			"Save",
 			"Cancel",
 			text,
 			func(b bool) {
 				if b {
-					chooseSaveAs(logger, state, win, app)
+					chooseSaveAs(logger, state, win, app, decryptedData)
 				}
 			},
 			win,
 		)
+		fyne.Do(d.Show)
 	} else {
-		dialog.ShowError(errors.New(msg), win)
+		fyne.Do(func() { dialog.ShowError(errors.New(msg), win) })
 	}
 }
 
