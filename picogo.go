@@ -24,6 +24,8 @@ import (
 
 type myTheme struct{}
 
+var errPreviewMemoryExceeded = errors.New("preview memory limit exceeded")
+
 func (m myTheme) Color(name fyne.ThemeColorName, variant fyne.ThemeVariant) color.Color {
 	switch name {
 	case theme.ColorNameDisabled:
@@ -336,9 +338,9 @@ func encrypt(logger *ui.Logger, state *ui.State, win fyne.Window, app fyne.App) 
 func tryDecrypt(
 	logger *ui.Logger,
 	state *ui.State,
-	recoveryMode bool,
 	w fyne.Window,
 	app fyne.App,
+	previewMode bool,
 ) (bool, error) {
 	input, err := uriReadCloser(state.Input().Uri())
 	if err != nil {
@@ -382,7 +384,7 @@ func tryDecrypt(
 			keyfiles,
 			input,
 			io.MultiWriter(output, &counter),
-			recoveryMode,
+			true,
 		)
 		errCh <- struct {
 			bool
@@ -410,26 +412,24 @@ func tryDecrypt(
 }
 
 func decrypt(logger *ui.Logger, state *ui.State, win fyne.Window, app fyne.App) {
-	damaged, err := tryDecrypt(logger, state, false, win, app)
-	recoveryMode := false
-	recoveryCanceled := false
-	if errors.Is(err, encryption.ErrBodyCorrupted) {
-		// Offer to try again in recovery mode
-		text := widget.NewLabel("The file is damaged. Would you like to try again in recovery mode?")
+	damaged, err := tryDecrypt(logger, state, win, app, state.Settings.PreviewMode.Checked)
+	retryCanceled := false
+	if errors.Is(err, errPreviewMemoryExceeded) {
+		// Offer to try again without preview mode
+		text := widget.NewLabel("The file is too large to preview. Would you like to try again without preview mode?\n\nNote: you can turn off preview mode by default in the settings.")
 		text.Wrapping = fyne.TextWrapWord
 		doneCh := make(chan struct{})
 		dialog.ShowCustomConfirm(
-			"Damaged File",
-			"Recover",
+			"Preview Memory Exceeded",
+			"Retry",
 			"Cancel",
 			text,
 			func(b bool) {
 				if b {
-					logger.Log("Retrying decryption in recovery mode", *state, nil)
-					recoveryMode = true
-					damaged, err = tryDecrypt(logger, state, true, win, app)
+					logger.Log("Retrying without preview mode", *state, nil)
+					damaged, err = tryDecrypt(logger, state, win, app, false)
 				} else {
-					recoveryCanceled = true
+					retryCanceled = true
 				}
 				doneCh <- struct{}{}
 			},
@@ -437,7 +437,7 @@ func decrypt(logger *ui.Logger, state *ui.State, win fyne.Window, app fyne.App) 
 		)
 		<-doneCh
 	}
-	if recoveryCanceled {
+	if retryCanceled {
 		return
 	}
 
@@ -453,13 +453,8 @@ func decrypt(logger *ui.Logger, state *ui.State, win fyne.Window, app fyne.App) 
 	} else {
 		switch {
 		case errors.Is(err, encryption.ErrBodyCorrupted):
-			if recoveryMode {
-				msg = "The file is too damaged to recover. Would you like to save the partially recovered file?"
-				save = true
-			} else {
-				msg = "The file is too damaged to recover."
-				save = false
-			}
+			msg = "The file is too damaged to recover. Would you like to save the partially recovered file?"
+			save = true
 		case errors.Is(err, encryption.ErrIncorrectKeyfiles):
 			msg = "One or more keyfiles are incorrect."
 			save = false
