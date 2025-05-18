@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"unicode/utf8"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
@@ -102,6 +103,11 @@ func (d *DecryptedData) CopyTo(dest io.Writer) error {
 
 func (d *DecryptedData) PreviewFunc() func() {
 	if !d.inMemory {
+		return nil
+	}
+	validImage := isImage(d.name)
+	validText := utf8.Valid(d.buf.buf.Bytes())
+	if !(validImage || validText) {
 		return nil
 	}
 	return func() {
