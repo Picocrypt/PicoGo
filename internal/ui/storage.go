@@ -117,12 +117,10 @@ func (d *DecryptedData) PreviewFunc() func() {
 			image := canvas.NewImageFromReader(reader, d.name)
 			image.SetMinSize(fyne.NewSize(400, 400))
 			image.FillMode = canvas.ImageFillContain
-			closeBtn := widget.NewButton("Close", func() { w.Close() })
 			w.SetContent(
 				container.New(
 					layout.NewVBoxLayout(),
 					image,
-					closeBtn,
 				),
 			)
 		} else {
@@ -130,7 +128,6 @@ func (d *DecryptedData) PreviewFunc() func() {
 				container.New(
 					layout.NewVBoxLayout(),
 					widget.NewRichTextWithText(string(d.buf.buf.Bytes())),
-					widget.NewButton("Close", func() { w.Close() }),
 				),
 			)
 		}
