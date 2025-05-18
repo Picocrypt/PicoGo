@@ -63,7 +63,7 @@ func TestFilePickerCallback(t *testing.T) {
 	logger := Logger{}
 	app := test.NewApp()
 	window := app.NewWindow("Test Window")
-	state := NewState()
+	state := NewState(app)
 	callback := filePickerCallback(state, &logger, window)
 	test := TestReadWriteCloser{}
 
@@ -92,7 +92,7 @@ func TestFilePickerCallback(t *testing.T) {
 }
 
 func TestFilename(t *testing.T) {
-	state := NewState()
+	state := NewState(test.NewApp())
 	if state.FileName.Text != "" {
 		t.Errorf("Filename should be empty")
 	}
@@ -109,7 +109,7 @@ func TestFilename(t *testing.T) {
 }
 
 func TestComments(t *testing.T) {
-	state := NewState()
+	state := NewState(test.NewApp())
 
 	state.SetInput(MakeURI("test"))
 	if !state.IsEncrypting() {
@@ -157,9 +157,9 @@ func TestComments(t *testing.T) {
 }
 
 func TestKeyfileAddCallback(t *testing.T) {
-	state := NewState()
 	app := test.NewApp()
 	window := app.NewWindow("Test Window")
+	state := NewState(app)
 	logger := Logger{}
 	callback := keyfileAddCallback(state, &logger, window)
 
@@ -178,7 +178,7 @@ func TestKeyfileAddCallback(t *testing.T) {
 }
 
 func TestKeyfileCreateCallback(t *testing.T) {
-	state := NewState()
+	state := NewState(test.NewApp())
 	app := test.NewApp()
 	window := app.NewWindow("Test Window")
 	logger := Logger{}
@@ -199,7 +199,7 @@ func TestKeyfileCreateCallback(t *testing.T) {
 }
 
 func TestKeyfileClearCallback(t *testing.T) {
-	state := NewState()
+	state := NewState(test.NewApp())
 	logger := Logger{}
 	callback := keyfileClearCallback(state, &logger)
 
@@ -214,7 +214,7 @@ func TestKeyfileClearCallback(t *testing.T) {
 }
 
 func TestKeyfileTextUpdate(t *testing.T) {
-	state := NewState()
+	state := NewState(test.NewApp())
 	if state.KeyfileText.Text != "" {
 		t.Errorf("Text should be empty")
 	}
@@ -227,7 +227,7 @@ func TestKeyfileTextUpdate(t *testing.T) {
 }
 
 func TestPasswordEntry(t *testing.T) {
-	state := NewState()
+	state := NewState(test.NewApp())
 	if state.Password.Text != "" {
 		t.Errorf("Password should be empty")
 	}
@@ -244,7 +244,7 @@ func TestPasswordEntry(t *testing.T) {
 }
 
 func TestConfirmEntry(t *testing.T) {
-	state := NewState()
+	state := NewState(test.NewApp())
 	if state.ConfirmPassword.Text != "" {
 		t.Errorf("Confirm should be empty")
 	}
@@ -267,10 +267,10 @@ func TestConfirmEntry(t *testing.T) {
 }
 
 func TestWorkBtn(t *testing.T) {
-	state := NewState()
 	logger := Logger{}
 	app := test.NewApp()
 	window := app.NewWindow("Test Window")
+	state := NewState(app)
 	encryptCalled := false
 	encrypt := func() {
 		encryptCalled = true
