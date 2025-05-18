@@ -11,7 +11,6 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
-	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/storage"
 	"fyne.io/fyne/v2/widget"
 )
@@ -117,19 +116,11 @@ func (d *DecryptedData) PreviewFunc() func() {
 			image := canvas.NewImageFromReader(reader, d.name)
 			image.SetMinSize(fyne.NewSize(400, 400))
 			image.FillMode = canvas.ImageFillContain
-			w.SetContent(
-				container.New(
-					layout.NewVBoxLayout(),
-					image,
-				),
-			)
+			w.SetContent(image)
 		} else {
-			w.SetContent(
-				container.New(
-					layout.NewVBoxLayout(),
-					widget.NewRichTextWithText(string(d.buf.buf.Bytes())),
-				),
-			)
+			text := widget.NewRichTextWithText(string(d.buf.buf.Bytes()))
+			text.Wrapping = fyne.TextWrapWord
+			w.SetContent(container.NewVScroll(text))
 		}
 		fyne.Do(w.Show)
 	}
