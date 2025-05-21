@@ -15,34 +15,11 @@ import (
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/storage"
-	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 
 	"github.com/picocrypt/picogo/internal/encryption"
 	"github.com/picocrypt/picogo/internal/ui"
 )
-
-type myTheme struct{}
-
-func (m myTheme) Color(name fyne.ThemeColorName, variant fyne.ThemeVariant) color.Color {
-	switch name {
-	case theme.ColorNameDisabled:
-		return color.NRGBA{R: 0x80, G: 0x80, B: 0x80, A: 0xff}
-	default:
-		return theme.DarkTheme().Color(name, variant)
-	}
-}
-func (m myTheme) Font(style fyne.TextStyle) fyne.Resource {
-	return theme.DarkTheme().Font(style)
-}
-func (m myTheme) Icon(name fyne.ThemeIconName) fyne.Resource {
-	return theme.DarkTheme().Icon(name)
-}
-func (m myTheme) Size(name fyne.ThemeSizeName) float32 {
-	return theme.DarkTheme().Size(name) * 1.5
-}
-
-var _ fyne.Theme = (*myTheme)(nil)
 
 func uriReadCloser(uri string) (fyne.URIReadCloser, error) {
 	fullUri, err := storage.ParseURI(uri)
@@ -519,7 +496,7 @@ func developmentWarning(win fyne.Window) {
 
 func main() {
 	a := app.New()
-	a.Settings().SetTheme(&myTheme{})
+	a.Settings().SetTheme(ui.NewTheme(1.0))
 	w := a.NewWindow("PicoGo")
 	state := ui.NewState(a)
 
@@ -628,7 +605,6 @@ func main() {
 			state.WorkBtn,
 		),
 	)
-
 	fyne.Do(func() { developmentWarning(w) })
 	w.ShowAndRun()
 }
