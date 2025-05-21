@@ -496,7 +496,8 @@ func developmentWarning(win fyne.Window) {
 
 func main() {
 	a := app.New()
-	a.Settings().SetTheme(ui.NewTheme(1.0))
+	theme := ui.NewTheme(1.0)
+	a.Settings().SetTheme(theme)
 	w := a.NewWindow("PicoGo")
 	state := ui.NewState(a)
 
@@ -593,18 +594,36 @@ func main() {
 		func() { go func() { decrypt(&logger, state, w, a) }() },
 	)
 
+	body := container.New(
+		layout.NewVBoxLayout(),
+		info_row,
+		picker,
+		file_row,
+		advanced_settings_row,
+		keyfiles,
+		passwordRow,
+		state.WorkBtn,
+	)
+	minSize := body.MinSize()
 	w.SetContent(
 		container.New(
 			layout.NewVBoxLayout(),
-			info_row,
-			picker,
-			file_row,
-			advanced_settings_row,
-			keyfiles,
-			passwordRow,
-			state.WorkBtn,
+			body,
 		),
 	)
+
+	go func() {
+		for {
+			time.Sleep(time.Second)
+			currentSize := w.Canvas().Content().Size()
+			targetScale := min(currentSize.Width/minSize.Width, currentSize.Height/minSize.Height) * 0.9
+			currentScale := theme.Scale
+			if targetScale > currentScale*1.01 || targetScale < currentScale*0.99 {
+				theme.Scale = targetScale
+				fyne.Do(func() { a.Settings().SetTheme(theme) })
+			}
+		}
+	}()
 	fyne.Do(func() { developmentWarning(w) })
 	w.ShowAndRun()
 }

@@ -29,6 +29,6 @@ func (t Theme) Size(name fyne.ThemeSizeName) float32 {
 	return theme.DarkTheme().Size(name) * t.Scale
 }
 
-func NewTheme(scale float32) fyne.Theme {
+func NewTheme(scale float32) Theme {
 	return Theme{Scale: scale}
 }
