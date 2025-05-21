@@ -614,9 +614,18 @@ func main() {
 
 	go func() {
 		for {
+			// On android, users can change device settings that will scale the size
+			// of the widgets. This can lead to parts of the app going off screen.
+			// To work around this, continuously check the size of the window and scale
+			// the theme to fit.
+			// - continuous checking is required for desktop because the user may change
+			//   the window size. On android, the app is always full screen, so this should
+			//   only have effect the first loop.
+			// - only update the theme if the scale is more than 1% different from the current
+			//   scale. This is to prevent constant updates to the theme.
 			time.Sleep(time.Second)
 			currentSize := w.Canvas().Content().Size()
-			targetScale := min(currentSize.Width/minSize.Width, currentSize.Height/minSize.Height) * 0.9
+			targetScale := min(currentSize.Width/minSize.Width, currentSize.Height/minSize.Height)
 			currentScale := theme.Scale
 			if targetScale > currentScale*1.01 || targetScale < currentScale*0.99 {
 				theme.Scale = targetScale
