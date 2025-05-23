@@ -15,34 +15,11 @@ import (
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/storage"
-	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 
 	"github.com/picocrypt/picogo/internal/encryption"
 	"github.com/picocrypt/picogo/internal/ui"
 )
-
-type myTheme struct{}
-
-func (m myTheme) Color(name fyne.ThemeColorName, variant fyne.ThemeVariant) color.Color {
-	switch name {
-	case theme.ColorNameDisabled:
-		return color.NRGBA{R: 0x80, G: 0x80, B: 0x80, A: 0xff}
-	default:
-		return theme.DarkTheme().Color(name, variant)
-	}
-}
-func (m myTheme) Font(style fyne.TextStyle) fyne.Resource {
-	return theme.DarkTheme().Font(style)
-}
-func (m myTheme) Icon(name fyne.ThemeIconName) fyne.Resource {
-	return theme.DarkTheme().Icon(name)
-}
-func (m myTheme) Size(name fyne.ThemeSizeName) float32 {
-	return theme.DarkTheme().Size(name) * 1.5
-}
-
-var _ fyne.Theme = (*myTheme)(nil)
 
 func uriReadCloser(uri string) (fyne.URIReadCloser, error) {
 	fullUri, err := storage.ParseURI(uri)
@@ -519,7 +496,8 @@ func developmentWarning(win fyne.Window) {
 
 func main() {
 	a := app.New()
-	a.Settings().SetTheme(&myTheme{})
+	theme := ui.NewTheme(1.0)
+	a.Settings().SetTheme(theme)
 	w := a.NewWindow("PicoGo")
 	state := ui.NewState(a)
 
@@ -616,19 +594,45 @@ func main() {
 		func() { go func() { decrypt(&logger, state, w, a) }() },
 	)
 
+	body := container.New(
+		layout.NewVBoxLayout(),
+		info_row,
+		picker,
+		file_row,
+		advanced_settings_row,
+		keyfiles,
+		passwordRow,
+		state.WorkBtn,
+	)
+	minSize := body.MinSize()
 	w.SetContent(
 		container.New(
 			layout.NewVBoxLayout(),
-			info_row,
-			picker,
-			file_row,
-			advanced_settings_row,
-			keyfiles,
-			passwordRow,
-			state.WorkBtn,
+			body,
 		),
 	)
 
+	go func() {
+		for {
+			// On android, users can change device settings that will scale the size
+			// of the widgets. This can lead to parts of the app going off screen.
+			// To work around this, continuously check the size of the window and scale
+			// the theme to fit.
+			// - continuous checking is required for desktop because the user may change
+			//   the window size. On android, the app is always full screen, so this should
+			//   only have effect the first loop.
+			// - only update the theme if the scale is more than 1% different from the current
+			//   scale. This is to prevent constant updates to the theme.
+			time.Sleep(time.Second / 10.0)
+			currentSize := w.Canvas().Content().Size()
+			targetScale := min(currentSize.Width/minSize.Width, currentSize.Height/minSize.Height)
+			currentScale := theme.Scale
+			if targetScale > currentScale*1.01 || targetScale < currentScale*0.99 {
+				theme.Scale = targetScale
+				fyne.Do(func() { a.Settings().SetTheme(theme) })
+			}
+		}
+	}()
 	fyne.Do(func() { developmentWarning(w) })
 	w.ShowAndRun()
 }
