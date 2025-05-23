@@ -623,7 +623,7 @@ func main() {
 			//   only have effect the first loop.
 			// - only update the theme if the scale is more than 1% different from the current
 			//   scale. This is to prevent constant updates to the theme.
-			time.Sleep(time.Second)
+			time.Sleep(time.Second / 10.0)
 			currentSize := w.Canvas().Content().Size()
 			targetScale := min(currentSize.Width/minSize.Width, currentSize.Height/minSize.Height)
 			currentScale := theme.Scale
