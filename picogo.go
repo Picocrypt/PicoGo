@@ -473,12 +473,16 @@ func decrypt(logger *ui.Logger, state *ui.State, win fyne.Window, app fyne.App) 
 	}
 }
 
-func border() *canvas.Rectangle {
-	b := canvas.NewRectangle(color.White)
-	b.FillColor = color.Transparent
-	b.StrokeColor = color.White
-	b.StrokeWidth = 1
-	return b
+func wrapWithBorder(c fyne.CanvasObject) *fyne.Container {
+	border := canvas.NewRectangle(color.White)
+	border.FillColor = color.Transparent
+	border.StrokeColor = color.White
+	border.StrokeWidth = 1
+	return container.New(
+		layout.NewStackLayout(),
+		border,
+		container.NewPadded(c),
+	)
 }
 
 var developmentWarningShown = false
@@ -515,9 +519,7 @@ func main() {
 	)
 
 	picker := ui.MakeFilePicker(state, &logger, w)
-	file_row := container.New(
-		layout.NewStackLayout(),
-		border(),
+	fileRow := wrapWithBorder(
 		container.New(
 			layout.NewFormLayout(),
 			widget.NewLabel("File"), container.NewPadded(container.NewPadded(state.FileName)),
@@ -526,9 +528,7 @@ func main() {
 	)
 
 	// Advanced encryption settings
-	advanced_settings_row := container.New(
-		layout.NewStackLayout(),
-		border(),
+	advSettingsRow := wrapWithBorder(
 		container.New(
 			layout.NewVBoxLayout(),
 			container.New(
@@ -543,30 +543,26 @@ func main() {
 			),
 		),
 	)
-	keyfiles := container.New(
-		layout.NewStackLayout(),
-		border(),
-		container.NewPadded(
-			container.New(
-				layout.NewVBoxLayout(),
-				widget.NewRichTextFromMarkdown("### Keyfiles"),
-				container.NewPadded(
-					container.NewBorder(
-						nil,
-						nil,
+	keyfiles := wrapWithBorder(
+		container.New(
+			layout.NewVBoxLayout(),
+			widget.NewRichTextFromMarkdown("### Keyfiles"),
+			container.NewPadded(
+				container.NewBorder(
+					nil,
+					nil,
+					container.New(
+						layout.NewVBoxLayout(),
+						ui.KeyfileAddBtn(state, &logger, w),
+						ui.KeyfileCreateBtn(state, &logger, w),
+						ui.KeyfileClearBtn(state, &logger),
+					),
+					nil,
+					container.NewPadded(
 						container.New(
 							layout.NewVBoxLayout(),
-							ui.KeyfileAddBtn(state, &logger, w),
-							ui.KeyfileCreateBtn(state, &logger, w),
-							ui.KeyfileClearBtn(state, &logger),
-						),
-						nil,
-						container.NewPadded(
-							container.New(
-								layout.NewVBoxLayout(),
-								state.OrderedKeyfiles,
-								state.KeyfileText,
-							),
+							state.OrderedKeyfiles,
+							state.KeyfileText,
 						),
 					),
 				),
@@ -574,9 +570,7 @@ func main() {
 		),
 	)
 
-	passwordRow := container.New(
-		layout.NewStackLayout(),
-		border(),
+	passwordRow := wrapWithBorder(
 		container.NewPadded(container.NewPadded(
 			container.New(
 				layout.NewVBoxLayout(),
@@ -598,8 +592,8 @@ func main() {
 		layout.NewVBoxLayout(),
 		info_row,
 		picker,
-		file_row,
-		advanced_settings_row,
+		fileRow,
+		advSettingsRow,
 		keyfiles,
 		passwordRow,
 		state.WorkBtn,
