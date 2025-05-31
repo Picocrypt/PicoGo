@@ -12,7 +12,7 @@ import (
 	"github.com/picocrypt/picogo/internal/encryption"
 )
 
-const PicoGoVersion = "v0.1.4"
+const PicoGoVersion = "v0.1.5"
 
 var fileDescCount int
 var fileDescMutex sync.Mutex
