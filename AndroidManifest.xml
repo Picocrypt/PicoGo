@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:versionCode="1"
+    android:versionName="0.1.0"
+    package="io.github.picocrypt.PicoGo"
+    platformBuildVersionCode="15"
+    platformBuildVersionName="4.0.4-1406430">
+
+    <uses-sdk
+        android:minSdkVersion="15"
+        android:targetSdkVersion="29" />
+
+    <application
+        android:label="PicoGo"
+        android:icon="@ref/0x7f020000"
+        android:debuggable="true">
+
+        <activity
+            android:theme="@ref/0x1030005"
+            android:label="PicoGo"
+            android:name="org.golang.app.GoNativeActivity"
+            android:configChanges="0x2a0"
+            android:exported="true">
+
+            <meta-data
+                android:name="android.app.lib_name"
+                android:value="PicoGo" />
+
+            <intent-filter>
+
+                <action
+                    android:name="android.intent.action.MAIN" />
+
+                <category
+                    android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+
+    <uses-permission
+        android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+
+    <uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE" />
+</manifest>
+
