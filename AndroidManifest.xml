@@ -20,7 +20,9 @@
             android:theme="@ref/0x1030005"
             android:label="PicoGo"
             android:name="org.golang.app.GoNativeActivity"
-            android:configChanges="0x2a0"
+            android:configChanges="keyboardHidden|screenSize"
+            android:windowSoftInputMode="adjustPan"
+            android:screenOrientation="portrait"
             android:exported="true">
 
             <meta-data
@@ -44,4 +46,3 @@
     <uses-permission
         android:name="android.permission.READ_EXTERNAL_STORAGE" />
 </manifest>
-
