@@ -593,18 +593,13 @@ func main() {
 		info_row,
 		picker,
 		fileRow,
+		passwordRow,
 		advSettingsRow,
 		keyfiles,
-		passwordRow,
 		state.WorkBtn,
 	)
-	minSize := body.MinSize()
-	w.SetContent(
-		container.New(
-			layout.NewVBoxLayout(),
-			body,
-		),
-	)
+	minSize := fyne.NewSize(body.MinSize().Width*1.05, body.MinSize().Height*1.05)
+	w.SetContent(container.NewScroll(container.New(layout.NewVBoxLayout(), body)))
 
 	go func() {
 		for {
@@ -619,7 +614,7 @@ func main() {
 			//   scale. This is to prevent constant updates to the theme.
 			time.Sleep(time.Second / 10.0)
 			currentSize := w.Canvas().Content().Size()
-			targetScale := min(currentSize.Width/minSize.Width, currentSize.Height/minSize.Height)
+			targetScale := currentSize.Width / minSize.Width
 			currentScale := theme.Scale
 			if targetScale > currentScale*1.01 || targetScale < currentScale*0.99 {
 				theme.Scale = targetScale
