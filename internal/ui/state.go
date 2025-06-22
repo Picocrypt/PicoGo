@@ -120,6 +120,7 @@ func NewState(app fyne.App) *State {
 		Settings:        NewSettings(app),
 	}
 
+	state.FileName.Wrapping = fyne.TextWrap(fyne.TextTruncateEllipsis)
 	state.Deniability.OnChanged = func(checked bool) { state.updateComments() }
 
 	state.ReedSolomon.SetChecked(state.Settings.ReedSolomonDefault.Checked)
