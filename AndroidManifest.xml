@@ -7,17 +7,11 @@
     platformBuildVersionCode="15"
     platformBuildVersionName="4.0.4-1406430">
 
-    <uses-sdk
-        android:minSdkVersion="15"
-        android:targetSdkVersion="29" />
-
     <application
         android:label="PicoGo"
-        android:icon="@ref/0x7f020000"
         android:debuggable="true">
 
         <activity
-            android:theme="@ref/0x1030005"
             android:label="PicoGo"
             android:name="org.golang.app.GoNativeActivity"
             android:configChanges="keyboardHidden|screenSize"
