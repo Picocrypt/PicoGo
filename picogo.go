@@ -599,12 +599,7 @@ func main() {
 		state.WorkBtn,
 	)
 	minSize := body.MinSize()
-	w.SetContent(
-		container.New(
-			layout.NewVBoxLayout(),
-			body,
-		),
-	)
+	w.SetContent(container.NewScroll(container.New(layout.NewVBoxLayout(), body)))
 
 	go func() {
 		for {
