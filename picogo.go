@@ -593,9 +593,9 @@ func main() {
 		info_row,
 		picker,
 		fileRow,
+		passwordRow,
 		advSettingsRow,
 		keyfiles,
-		passwordRow,
 		state.WorkBtn,
 	)
 	minSize := fyne.NewSize(body.MinSize().Width*1.05, body.MinSize().Height*1.05)
