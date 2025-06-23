@@ -618,7 +618,6 @@ func showImagePreview(app fyne.App, state *ui.State, window fyne.Window, logger 
 	}
 	preview := app.NewWindow("Preview")
 	image := canvas.NewImageFromReader(output, state.Input().Name())
-	image.SetMinSize(fyne.NewSize(400, 400)) // TODO what size should this be?
 	image.FillMode = canvas.ImageFillContain
 	preview.SetContent(image)
 	fyne.Do(preview.Show)
