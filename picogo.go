@@ -625,7 +625,8 @@ func showTextPreview(app fyne.App, state *ui.State, window fyne.Window, logger *
 		logger.Log("Failed to open output file", *state, err)
 		return
 	}
-	rawText, err := io.ReadAll(output)
+	// Only read the first 1000 bytes to avoid loading too much data into memory
+	rawText, err := io.ReadAll(io.LimitReader(output, 1000))
 	if err != nil {
 		dialog.ShowError(fmt.Errorf("reading output file: %w", err), window)
 		logger.Log("Failed to read output file", *state, err)
