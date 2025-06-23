@@ -7,6 +7,7 @@ import (
 	"image/color"
 	"io"
 	"strconv"
+	"strings"
 	"time"
 
 	"fyne.io/fyne/v2"
@@ -20,6 +21,10 @@ import (
 
 	"github.com/picocrypt/picogo/internal/encryption"
 	"github.com/picocrypt/picogo/internal/ui"
+)
+
+const (
+	previewTextSize = 5000
 )
 
 func uriReadCloser(uri string) (fyne.URIReadCloser, error) {
@@ -52,6 +57,18 @@ func clearFile(uri fyne.URI) error {
 
 func getOutputURI(app fyne.App) (fyne.URI, error) {
 	return storage.Child(app.Storage().RootURI(), "output")
+}
+
+func outputReader(app fyne.App) (io.ReadCloser, error) {
+	outputURI, err := getOutputURI(app)
+	if err != nil {
+		return nil, fmt.Errorf("finding output file: %w", err)
+	}
+	output, err := uriReadCloser(outputURI.String())
+	if err != nil {
+		return nil, fmt.Errorf("opening output file: %w", err)
+	}
+	return output, nil
 }
 
 func clearOutputFile(app fyne.App) error {
@@ -420,18 +437,24 @@ func decrypt(logger *ui.Logger, state *ui.State, win fyne.Window, app fyne.App) 
 	if save {
 		text := widget.NewLabel(msg)
 		text.Wrapping = fyne.TextWrapWord
-		dialog.ShowCustomConfirm(
+		cancelBtn := widget.NewButton("Cancel", func() {})
+		previewBtn := widget.NewButton("Preview", func() { showPreview(app, state, win, logger) })
+		saveBtn := widget.NewButton("Save", func() {})
+		d := dialog.NewCustomWithoutButtons(
 			"Decryption Complete",
-			"Save",
-			"Cancel",
-			text,
-			func(b bool) {
-				if b {
-					chooseSaveAs(logger, state, win, app, []byte{})
-				}
-			},
+			container.New(
+				layout.NewVBoxLayout(),
+				text,
+				container.New(layout.NewHBoxLayout(), cancelBtn, previewBtn, saveBtn),
+			),
 			win,
 		)
+		cancelBtn.OnTapped = func() { fyne.Do(d.Dismiss) }
+		saveBtn.OnTapped = func() {
+			fyne.Do(d.Dismiss)
+			go func() { chooseSaveAs(logger, state, win, app, []byte{}) }()
+		}
+		fyne.Do(d.Show)
 	} else {
 		dialog.ShowError(errors.New(msg), win)
 	}
@@ -588,4 +611,50 @@ func main() {
 	}()
 	fyne.Do(func() { developmentWarning(w) })
 	w.ShowAndRun()
+}
+
+func showImagePreview(app fyne.App, state *ui.State, window fyne.Window, logger *ui.Logger) {
+	output, err := outputReader(app)
+	if err != nil {
+		dialog.ShowError(fmt.Errorf("opening output file: %w", err), window)
+		logger.Log("Failed to open output file", *state, err)
+		return
+	}
+	preview := app.NewWindow("Preview")
+	image := canvas.NewImageFromReader(output, state.Input().Name())
+	image.FillMode = canvas.ImageFillContain
+	preview.SetContent(image)
+	fyne.Do(preview.Show)
+}
+
+func showTextPreview(app fyne.App, state *ui.State, window fyne.Window, logger *ui.Logger) {
+	output, err := outputReader(app)
+	if err != nil {
+		dialog.ShowError(fmt.Errorf("opening output file: %w", err), window)
+		logger.Log("Failed to open output file", *state, err)
+		return
+	}
+	// Only read the N bytes to avoid loading too much data into memory
+	rawText, err := io.ReadAll(io.LimitReader(output, previewTextSize))
+	if err != nil {
+		dialog.ShowError(fmt.Errorf("reading output file: %w", err), window)
+		logger.Log("Failed to read output file", *state, err)
+		return
+	}
+	text := widget.NewRichTextWithText(string(rawText))
+	text.Wrapping = fyne.TextWrapWord
+	preview := app.NewWindow("Preview")
+	preview.SetContent(container.NewVScroll(text))
+	fyne.Do(preview.Show)
+}
+
+func showPreview(app fyne.App, state *ui.State, window fyne.Window, logger *ui.Logger) {
+	name := state.DefaultSaveName()
+	for _, suffix := range []string{".png", ".jpg", ".jpeg", ".svg"} {
+		if strings.HasSuffix(name, suffix) {
+			showImagePreview(app, state, window, logger)
+			return
+		}
+	}
+	showTextPreview(app, state, window, logger)
 }
