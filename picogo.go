@@ -23,6 +23,10 @@ import (
 	"github.com/picocrypt/picogo/internal/ui"
 )
 
+const (
+	previewTextSize = 5000
+)
+
 func uriReadCloser(uri string) (fyne.URIReadCloser, error) {
 	fullUri, err := storage.ParseURI(uri)
 	if err != nil {
@@ -630,8 +634,8 @@ func showTextPreview(app fyne.App, state *ui.State, window fyne.Window, logger *
 		logger.Log("Failed to open output file", *state, err)
 		return
 	}
-	// Only read the first 1000 bytes to avoid loading too much data into memory
-	rawText, err := io.ReadAll(io.LimitReader(output, 1000))
+	// Only read the N bytes to avoid loading too much data into memory
+	rawText, err := io.ReadAll(io.LimitReader(output, previewTextSize))
 	if err != nil {
 		dialog.ShowError(fmt.Errorf("reading output file: %w", err), window)
 		logger.Log("Failed to read output file", *state, err)
