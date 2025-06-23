@@ -433,18 +433,24 @@ func decrypt(logger *ui.Logger, state *ui.State, win fyne.Window, app fyne.App) 
 	if save {
 		text := widget.NewLabel(msg)
 		text.Wrapping = fyne.TextWrapWord
-		dialog.ShowCustomConfirm(
+		cancelBtn := widget.NewButton("Cancel", func() {})
+		previewBtn := widget.NewButton("Preview", func() { showPreview(app, state, win, logger) })
+		saveBtn := widget.NewButton("Save", func() {})
+		d := dialog.NewCustomWithoutButtons(
 			"Decryption Complete",
-			"Save",
-			"Cancel",
-			text,
-			func(b bool) {
-				if b {
-					chooseSaveAs(logger, state, win, app, []byte{})
-				}
-			},
+			container.New(
+				layout.NewVBoxLayout(),
+				text,
+				container.New(layout.NewHBoxLayout(), cancelBtn, previewBtn, saveBtn),
+			),
 			win,
 		)
+		cancelBtn.OnTapped = func() { fyne.Do(d.Dismiss) }
+		saveBtn.OnTapped = func() {
+			fyne.Do(d.Dismiss)
+			go func() { chooseSaveAs(logger, state, win, app, []byte{}) }()
+		}
+		fyne.Do(d.Show)
 	} else {
 		dialog.ShowError(errors.New(msg), win)
 	}
