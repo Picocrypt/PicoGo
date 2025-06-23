@@ -7,6 +7,7 @@ import (
 	"image/color"
 	"io"
 	"strconv"
+	"strings"
 	"time"
 
 	"fyne.io/fyne/v2"
@@ -52,6 +53,18 @@ func clearFile(uri fyne.URI) error {
 
 func getOutputURI(app fyne.App) (fyne.URI, error) {
 	return storage.Child(app.Storage().RootURI(), "output")
+}
+
+func outputReader(app fyne.App) (io.ReadCloser, error) {
+	outputURI, err := getOutputURI(app)
+	if err != nil {
+		return nil, fmt.Errorf("finding output file: %w", err)
+	}
+	output, err := uriReadCloser(outputURI.String())
+	if err != nil {
+		return nil, fmt.Errorf("opening output file: %w", err)
+	}
+	return output, nil
 }
 
 func clearOutputFile(app fyne.App) error {
@@ -588,4 +601,50 @@ func main() {
 	}()
 	fyne.Do(func() { developmentWarning(w) })
 	w.ShowAndRun()
+}
+
+func showImagePreview(app fyne.App, state *ui.State, window fyne.Window, logger *ui.Logger) {
+	output, err := outputReader(app)
+	if err != nil {
+		dialog.ShowError(fmt.Errorf("opening output file: %w", err), window)
+		logger.Log("Failed to open output file", *state, err)
+		return
+	}
+	preview := app.NewWindow("Preview")
+	image := canvas.NewImageFromReader(output, state.Input().Name())
+	image.SetMinSize(fyne.NewSize(400, 400)) // TODO what size should this be?
+	image.FillMode = canvas.ImageFillContain
+	preview.SetContent(image)
+	fyne.Do(preview.Show)
+}
+
+func showTextPreview(app fyne.App, state *ui.State, window fyne.Window, logger *ui.Logger) {
+	output, err := outputReader(app)
+	if err != nil {
+		dialog.ShowError(fmt.Errorf("opening output file: %w", err), window)
+		logger.Log("Failed to open output file", *state, err)
+		return
+	}
+	rawText, err := io.ReadAll(output)
+	if err != nil {
+		dialog.ShowError(fmt.Errorf("reading output file: %w", err), window)
+		logger.Log("Failed to read output file", *state, err)
+		return
+	}
+	text := widget.NewRichTextWithText(string(rawText))
+	text.Wrapping = fyne.TextWrapWord
+	preview := app.NewWindow("Preview")
+	preview.SetContent(container.NewVScroll(text))
+	fyne.Do(preview.Show)
+}
+
+func showPreview(app fyne.App, state *ui.State, window fyne.Window, logger *ui.Logger) {
+	name := state.DefaultSaveName()
+	for _, suffix := range []string{".png", ".jpg", ".jpeg", ".svg"} {
+		if strings.HasSuffix(name, suffix) {
+			showImagePreview(app, state, window, logger)
+			return
+		}
+	}
+	showTextPreview(app, state, window, logger)
 }
