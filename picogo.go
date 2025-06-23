@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"image/color"
@@ -49,18 +50,6 @@ func clearFile(uri fyne.URI) error {
 	return err
 }
 
-func getHeadlessURI(app fyne.App) (fyne.URI, error) {
-	return storage.Child(app.Storage().RootURI(), "headless")
-}
-
-func clearHeadlessFile(app fyne.App) error {
-	headlessURI, err := getHeadlessURI(app)
-	if err != nil {
-		return err
-	}
-	return clearFile(headlessURI)
-}
-
 func getOutputURI(app fyne.App) (fyne.URI, error) {
 	return storage.Child(app.Storage().RootURI(), "output")
 }
@@ -73,7 +62,7 @@ func clearOutputFile(app fyne.App) error {
 	return clearFile(outputURI)
 }
 
-func chooseSaveAs(logger *ui.Logger, state *ui.State, window fyne.Window, app fyne.App) {
+func chooseSaveAs(logger *ui.Logger, state *ui.State, window fyne.Window, app fyne.App, prepend []byte) {
 	d := dialog.NewFileSave(func(writer fyne.URIWriteCloser, err error) {
 		if writer != nil {
 			defer writer.Close()
@@ -88,7 +77,7 @@ func chooseSaveAs(logger *ui.Logger, state *ui.State, window fyne.Window, app fy
 			state.SaveAs = &saveAs
 			logger.Log("Chose where to save output", *state, nil)
 			go func() {
-				saveOutput(logger, state, window, app)
+				saveOutput(logger, state, window, app, prepend)
 			}()
 		} else {
 			logger.Log("Canceled choosing where to save output", *state, nil)
@@ -107,7 +96,7 @@ func chooseSaveAs(logger *ui.Logger, state *ui.State, window fyne.Window, app fy
 	fyne.Do(d.Show)
 }
 
-func saveOutput(logger *ui.Logger, state *ui.State, window fyne.Window, app fyne.App) {
+func saveOutput(logger *ui.Logger, state *ui.State, window fyne.Window, app fyne.App, prepend []byte) {
 	defer func() { state.SaveAs = nil }()
 	outputURI, err := getOutputURI(app)
 	if err != nil {
@@ -136,7 +125,8 @@ func saveOutput(logger *ui.Logger, state *ui.State, window fyne.Window, app fyne
 	errCh := make(chan error)
 	counter := ui.ByteCounter{}
 	go func() {
-		_, err := io.Copy(io.MultiWriter(&counter, saveAs), output)
+		src := io.MultiReader(bytes.NewBuffer(prepend), output)
+		_, err := io.Copy(io.MultiWriter(&counter, saveAs), src)
 		errCh <- err
 	}()
 
@@ -173,36 +163,40 @@ func saveOutput(logger *ui.Logger, state *ui.State, window fyne.Window, app fyne
 	}
 }
 
+type encryptResult struct {
+	header []byte
+	err    error
+}
+
 func encrypt(logger *ui.Logger, state *ui.State, win fyne.Window, app fyne.App) {
-	errCh := make(chan error)
 	counter := ui.ByteCounter{}
+	resultCh := make(chan encryptResult)
 
 	go func() {
 		logger.Log("Start encryption routine", *state, nil)
-		headlessURI, err := getHeadlessURI(app)
-		if err != nil {
-			logger.Log("Get headless URI", *state, err)
-			errCh <- err
-			return
-		}
 		input, err := uriReadCloser(state.Input().Uri())
 		if input != nil {
 			defer input.Close()
 		}
 		if err != nil {
 			logger.Log("Get input reader", *state, err)
-			errCh <- err
+			resultCh <- encryptResult{nil, fmt.Errorf("getting input file: %w", err)}
 			return
 		}
 
-		headlessWriter, err := storage.Writer(headlessURI)
-		if headlessWriter != nil {
-			defer clearHeadlessFile(app)
-			defer headlessWriter.Close()
+		outputURI, err := getOutputURI(app)
+		if err != nil {
+			logger.Log("Get output uri", *state, err)
+			resultCh <- encryptResult{nil, fmt.Errorf("finding output file: %w", err)}
+			return
+		}
+		output, err := storage.Writer(outputURI)
+		if output != nil {
+			defer output.Close()
 		}
 		if err != nil {
-			logger.Log("Get headless writer", *state, err)
-			errCh <- err
+			logger.Log("Get output writer", *state, err)
+			resultCh <- encryptResult{nil, fmt.Errorf("opening output file: %w", err)}
 			return
 		}
 
@@ -214,7 +208,7 @@ func encrypt(logger *ui.Logger, state *ui.State, win fyne.Window, app fyne.App) 
 			}
 			if err != nil {
 				logger.Log("Get keyfile reader "+strconv.Itoa(i), *state, err)
-				errCh <- err
+				resultCh <- encryptResult{nil, fmt.Errorf("getting keyfile %d: %w", i, err)}
 				return
 			}
 			keyfiles = append(keyfiles, r)
@@ -227,69 +221,39 @@ func encrypt(logger *ui.Logger, state *ui.State, win fyne.Window, app fyne.App) 
 			Deniability: state.Deniability.Checked,
 		}
 		header, err := encryption.EncryptHeadless(
-			input, state.Password.Text, keyfiles, settings, io.MultiWriter(headlessWriter, &counter),
+			input, state.Password.Text, keyfiles, settings, io.MultiWriter(output, &counter),
 		)
 		if err != nil {
 			logger.Log("Encrypt headless", *state, err)
-			errCh <- err
+			resultCh <- encryptResult{nil, fmt.Errorf("encrypting: %w", err)}
 			return
 		}
-
-		headlessReader, err := storage.Reader(headlessURI)
-		if headlessReader != nil {
-			defer headlessReader.Close()
+		resultCh <- encryptResult{
+			header: header,
+			err:    nil,
 		}
-		if err != nil {
-			logger.Log("Get headless reader", *state, err)
-			errCh <- err
-			return
-		}
-
-		outputURI, err := getOutputURI(app)
-		if err != nil {
-			logger.Log("Get output uri", *state, err)
-			errCh <- err
-			return
-		}
-		output, err := storage.Writer(outputURI)
-		if output != nil {
-			defer output.Close()
-		}
-		if err != nil {
-			logger.Log("Get output writer", *state, err)
-			errCh <- err
-			return
-		}
-
-		err = encryption.PrependHeader(headlessReader, output, header)
-		if err != nil {
-			logger.Log("Prepend header", *state, err)
-		}
-		errCh <- err
 	}()
 
 	progress := widget.NewLabel("")
 	d := dialog.NewCustomWithoutButtons("Encrypting", container.New(layout.NewVBoxLayout(), progress), win)
 	fyne.Do(d.Show)
-	var encryptErr error
+	var result *encryptResult
 	for {
-		doBreak := false
 		select {
-		case err := <-errCh:
+		case r := <-resultCh:
 			fyne.Do(d.Dismiss)
-			encryptErr = err
-			doBreak = true
+			result = &r
 		default:
 			time.Sleep(time.Second / 4)
 			fyne.Do(func() { progress.SetText("Total: " + counter.Total() + "\nRate: " + counter.Rate()) })
 		}
-		if doBreak {
+		if result != nil {
 			break
 		}
 	}
-	logger.Log("Complete encryption", *state, encryptErr)
-	if encryptErr != nil {
-		dialog.ShowError(fmt.Errorf("encrypting: %w", encryptErr), win)
+	logger.Log("Complete encryption", *state, result.err)
+	if result.err != nil {
+		dialog.ShowError(fmt.Errorf("encrypting: %w", result.err), win)
 		return
 	}
 	text := widget.NewLabel(state.Input().Name() + " has been encrypted.")
@@ -302,7 +266,7 @@ func encrypt(logger *ui.Logger, state *ui.State, win fyne.Window, app fyne.App) 
 			text,
 			func(b bool) {
 				if b {
-					chooseSaveAs(logger, state, win, app)
+					chooseSaveAs(logger, state, win, app, result.header)
 				}
 			},
 			win,
@@ -463,7 +427,7 @@ func decrypt(logger *ui.Logger, state *ui.State, win fyne.Window, app fyne.App) 
 			text,
 			func(b bool) {
 				if b {
-					chooseSaveAs(logger, state, win, app)
+					chooseSaveAs(logger, state, win, app, []byte{})
 				}
 			},
 			win,
