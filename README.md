@@ -59,5 +59,4 @@ In theory, the app is fully ready to be built for iOS. Unfortunately I do not ha
 # Credits
 <ul>
   <li><strong><a href="https://github.com/njhuffman">@njhuffman</a></strong>: initial and primary developer of PicoGo</li>
-  <li><strong><a href="https://github.com/HACKERALERT">@HACKERALERT</a></strong>: original Picocrypt developer, PicoGo CI/CD maintainer</li>
 </ul>
