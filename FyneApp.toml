@@ -1,8 +1,8 @@
-Website = "https://github.com/Picocrypt/PicoGo"
+Website = "https://github.com/njhuffman/PicoGo"
 
 [Details]
 Icon = "icon.png"
 Name = "PicoGo"
-ID = "io.github.picocrypt.PicoGo"
+ID = "io.github.njhuffman.PicoGo"
 Version = "0.1.0"
 Build = 1
