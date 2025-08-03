@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/picocrypt/picogo/internal/encryption"
+	"github.com/njhuffman/picogo/internal/encryption"
 )
 
 func argsMatch(a, b args) bool {
