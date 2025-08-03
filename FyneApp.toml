@@ -1,8 +1,0 @@
-Website = "https://github.com/Picocrypt/PicoGo"
-
-[Details]
-Icon = "icon.png"
-Name = "PicoGo"
-ID = "io.github.picocrypt.PicoGo"
-Version = "0.1.0"
-Build = 1
