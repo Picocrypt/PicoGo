@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/jschauma/getpass"
-	"github.com/picocrypt/picogo/internal/encryption"
+	"github.com/njhuffman/picogo/internal/encryption"
 	"github.com/schollz/progressbar/v3"
 )
 
