@@ -1,1 +1,1 @@
-**Moved to https://github.com/njhuffman/picogo**
+No longer supported.
