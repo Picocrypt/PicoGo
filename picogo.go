@@ -19,8 +19,8 @@ import (
 	"fyne.io/fyne/v2/storage"
 	"fyne.io/fyne/v2/widget"
 
-	"github.com/picocrypt/picogo/internal/encryption"
-	"github.com/picocrypt/picogo/internal/ui"
+	"github.com/njhuffman/picogo/internal/encryption"
+	"github.com/njhuffman/picogo/internal/ui"
 )
 
 const (
