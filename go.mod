@@ -1,4 +1,4 @@
-module github.com/picocrypt/picogo
+module github.com/njhuffman/picogo
 
 go 1.23.0
 
