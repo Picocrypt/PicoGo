@@ -6,7 +6,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/picocrypt/picogo/internal/ui"
+	"github.com/njhuffman/picogo/internal/ui"
 )
 
 func TestVersion(t *testing.T) {
