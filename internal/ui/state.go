@@ -9,7 +9,7 @@ import (
 	"fyne.io/fyne/v2/storage"
 	"fyne.io/fyne/v2/widget"
 
-	"github.com/picocrypt/picogo/internal/encryption"
+	"github.com/njhuffman/picogo/internal/encryption"
 )
 
 const PicoGoVersion = "v0.1.5"
